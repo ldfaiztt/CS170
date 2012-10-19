@@ -23,17 +23,23 @@ int testnum = 1;
 //	"which" is simply a number identifying the thread, for debugging
 //	purposes.
 //----------------------------------------------------------------------
+int SharedVariable;
 
-void
-SimpleThread(int which)
-{
-    int num;
-    
-    for (num = 0; num < 5; num++) {
-	printf("*** thread %d looped %d times\n", which, num);
-        currentThread->Yield();
-    }
-}
+	void
+	SimpleThread(int which)
+	{
+	  int num, val;
+
+	  for(num = 0; num < 5; num++) {
+	    val = SharedVariable;
+	    printf("*** thread %d sees value %d\n", which, val);
+	    currentThread->Yield();
+	    SharedVariable = val+1;
+	    currentThread->Yield();
+	  }
+	  val = SharedVariable;
+	  printf("Thread %d sees final value %d\n", which, val);
+	}
 
 //----------------------------------------------------------------------
 // ThreadTest1
@@ -57,16 +63,39 @@ ThreadTest1()
 // 	Invoke a test routine.
 //----------------------------------------------------------------------
 
-void
-ThreadTest()
-{
-    switch (testnum) {
-    case 1:
-	ThreadTest1();
-	break;
-    default:
-	printf("No test specified.\n");
-	break;
-    }
-}
+  #if defined(CHANGED) && defined(THREADS)
+    void
+	ThreadTest(int n)
+	{
+    	switch (testnum) {
+    	case 1:
+		DEBUG('t', "Entering ThreadTest1");
+		for(int i = 1; i < n+1;i++){
+			Thread *t = new Thread("forked thread");
+			t->Fork(SimpleThread, i);
+		}
+		SimpleThread(0);		
+		break;
+    	default:
+		printf("No test specified.\n");
+		break;
+    	}
+	}
+
+  #else
+     void
+	ThreadTest()
+	{
+    	switch (testnum) {
+    	case 1:
+		ThreadTest1();
+		break;
+    	default:
+		printf("No test specified.\n");
+		break;
+    	}
+	}
+
+  #endif
+
 

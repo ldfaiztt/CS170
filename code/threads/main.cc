@@ -59,7 +59,7 @@ extern int testnum;
 
 // External functions used by this file
 
-extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
+extern void ThreadTest(int numberOfThreads), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
@@ -100,8 +100,8 @@ main(int argc, char **argv)
         break;
       }
     }
-
-    ThreadTest();
+	int tall = 4;
+    ThreadTest(tall);
 #endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
