@@ -11,6 +11,7 @@
 
 #include "copyright.h"
 #include "system.h"
+#include "synch.h"
 
 // testnum is set in main.cc
 int testnum = 1;
@@ -23,23 +24,71 @@ int testnum = 1;
 //	"which" is simply a number identifying the thread, for debugging
 //	purposes.
 //----------------------------------------------------------------------
-int SharedVariable;
 
-	void
-	SimpleThread(int which)
-	{
-	  int num, val;
+#if defined(CHANGED) && defined(THREADS)
 
-	  for(num = 0; num < 5; num++) {
-	    val = SharedVariable;
-	    printf("*** thread %d sees value %d\n", which, val);
-	    currentThread->Yield();
-	    SharedVariable = val+1;
-	    currentThread->Yield();
-	  }
-	  val = SharedVariable;
-	  printf("Thread %d sees final value %d\n", which, val);
-	}
+	#if defined(HW1_SEMAPHORES)
+		//extern void Semaphore(char* debugName, int initialValue);
+		int SharedVariable;
+		Semaphore *sharedVariableSemaphore = new Semaphore("SharedVarSem", 1);
+		//Semaphore *sharedVarSemaphore      = new Semaphore("sharedVarSem", 1);
+
+		void
+		SimpleThread(int which)
+		{
+	  		int num, val;
+
+	 		for(num = 0; num < 5; num++) {
+				sharedVariableSemaphore ->P();
+	    			val = SharedVariable;
+
+	    			printf("*** thread %d sees value %d\n", which, val);
+	    		//	currentThread->Yield();
+	    			SharedVariable = val+1;
+				sharedVariableSemaphore ->V();
+	    			//currentThread->Yield();
+printf("CurrentThread: %d\n", currentThread);
+	  		}
+	  	val = SharedVariable;
+// Insert barrier here
+	  	printf("Thread %d sees final value %d\n", which, val);
+		}
+
+	#else
+		int SharedVariable;
+
+		void
+		SimpleThread(int which)
+		{
+	  		int num, val;
+
+	 		for(num = 0; num < 5; num++) {
+
+	    			val = SharedVariable;
+	    			printf("*** thread %d sees value %d\n", which, val);
+	    			currentThread->Yield();
+	    			SharedVariable = val+1;
+	    			currentThread->Yield();
+				
+	  		}
+	  	val = SharedVariable;
+	  	printf("Thread %d sees final value %d\n", which, val);
+		}
+	#endif
+
+#else 
+
+void
+SimpleThread(int which)
+{
+    int num;
+
+    for (num = 0; num < 5; num++) {
+        printf("*** thread %d looped %d times\n", which, num);
+        currentThread->Yield();
+    }
+}
+#endif
 
 //----------------------------------------------------------------------
 // ThreadTest1

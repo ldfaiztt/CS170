@@ -76,9 +76,12 @@ class Lock {
 					// holds this lock.  Useful for
 					// checking in Release, and in
 					// Condition variable ops below.
-
+	//int threadHolding;
   private:
-    char* name;				// for debugging
+	char* name;				// for debugging
+	bool free;
+	List *queue;
+		
     // plus some other stuff you'll need to define
 };
 
