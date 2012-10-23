@@ -76,7 +76,7 @@ class Lock {
 					// holds this lock.  Useful for
 					// checking in Release, and in
 					// Condition variable ops below.
-	//int threadHolding;
+	void* threadHolding;
   private:
 	char* name;				// for debugging
 	bool free;
@@ -132,6 +132,7 @@ class Condition {
     void Broadcast(Lock *conditionLock);// the currentThread for all of 
 					// these operations
 
+	List *queue;
   private:
     char* name;
     // plus some other stuff you'll need to define

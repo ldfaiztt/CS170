@@ -111,22 +111,23 @@ Lock::~Lock() {
 	delete queue;
 }
 void Lock::Acquire() {
-IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
 
-    // In the case of Acquire() being called by the thread that already owns it, do nothing
-    if(!isHeldByCurrentThread()){
+    	// In the case of Acquire() being called by the thread that already owns it, do nothing
+    	if(isHeldByCurrentThread()){
         
-    }else{
-// Otherwise, sleep until the lock can be acquired
-        while(!free) {
-            queue->Append((void *)currentThread);
-            currentThread->Sleep();
-        }
+	}else{
+	// Otherwise, sleep until the lock can be acquired
+        	while(!free) {
+            		queue->Append((void *)currentThread);
+            		currentThread->Sleep();
+        	}
 
         // Successfully acquired the lock, mark as acquired (not free) and set the owning thread
-        free = false;
-        //threadHolding = (void *)currentThread;
-}
+        	free = false;
+		//printf("Setting ThreadHolding to %d\n",currentThread);
+        	threadHolding = (void *)currentThread;
+	}
 
     (void) interrupt->SetLevel(oldLevel);
 }
@@ -135,15 +136,13 @@ void Lock::Release() {
     IntStatus oldLevel = interrupt->SetLevel(IntOff);
 
     // Ensure that the thread trying to release the lock owns it, otherwise do nothing
-    if(isHeldByCurrentThread())
-    {
+    if(isHeldByCurrentThread()){
         // Wake up one of the threads waiting on the lock, if any exist
         thread = (Thread *)queue->Remove();
-        if(thread != NULL)
-            scheduler->ReadyToRun(thread);
+        if(thread != NULL) scheduler->ReadyToRun(thread);
         // Free the lock
         free = true;
-        //threadHolding = NULL;
+        threadHolding = NULL;
     }
 
     (void) interrupt->SetLevel(oldLevel);
@@ -151,15 +150,63 @@ void Lock::Release() {
 
 bool Lock::isHeldByCurrentThread()
 {
-    //return(threadHolding == (void *)currentThread);
-	return true;
+	bool isHeld = (threadHolding == (void *)currentThread);   
+	//printf("Chekcking Lock::isHeld %d = %d ?  %d \n",currentThread,threadHolding,isHeld);	
+	return(isHeld);
+	
 }
 
-Condition::Condition(char* debugName) { }
-Condition::~Condition() { }
-void Condition::Wait(Lock* conditionLock) { ASSERT(FALSE); }
-void Condition::Signal(Lock* conditionLock) { }
-void Condition::Broadcast(Lock* conditionLock) { }
+Condition::Condition(char* debugName) {
+    name = debugName;
+    queue = new List;
+}
+
+Condition::~Condition() {
+	delete queue;
+}
+
+void Condition::Wait(Lock* conditionLock) { 
+ 	IntStatus oldLevel = interrupt->SetLevel (IntOff);
+	//if(conditionLock->isHeldByCurrentThread()){
+		queue->Append((void *)currentThread);  		
+		conditionLock->Release();
+		//printf("Thread Sleeping \n");
+  		currentThread->Sleep();
+		//printf("Thread Awake\n");
+		conditionLock->Acquire();
+	//}
+  interrupt->SetLevel (oldLevel);
+  
+}
+void Condition::Signal(Lock* conditionLock) {
+	//printf("Signaling\n");
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	if(conditionLock->isHeldByCurrentThread()){
+        	Thread *thread;
+        	thread = (Thread *)queue->Remove();
+        	if(thread != NULL){
+			//printf("Sending %d to ReadyToRun, sendt by %d \n", thread, currentThread);
+        		scheduler->ReadyToRun(thread);
+        	}else{
+			//printf("Thread = null");
+		}
+    	
+	}else{
+		//printf("ConditionLock not hold by current thread\n");
+	}
+    (void) interrupt->SetLevel(oldLevel);
+}
+void Condition::Broadcast(Lock* conditionLock) { 
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+    	if(conditionLock->isHeldByCurrentThread()){
+        	Thread *thread;
+  		while (thread != NULL) {
+    			scheduler->ReadyToRun(thread);
+    			thread = (Thread *)queue->Remove();
+ 		}
+    	}
+    (void) interrupt->SetLevel(oldLevel);
+}
 
 #else
 
