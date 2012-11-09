@@ -7,12 +7,14 @@
 // Copyright (c) 1992-1993 The Regents of the University of California.
 // All rights reserved.  See copyright.h for copyright notice and limitation 
 // of liability and disclaimer of warranty provisions.
+//This is a comment
 
 #include "copyright.h"
 #include "system.h"
 #include "console.h"
 #include "addrspace.h"
 #include "synch.h"
+#include "processmanager.h"
 
 //----------------------------------------------------------------------
 // StartProcess
@@ -24,28 +26,35 @@ void
 StartProcess(char *filename)
 {
     OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
     if (executable == NULL) {
 	printf("Unable to open file %s\n", filename);
 	return;
     }
-    
-    int newPID = processManager->getPID();
-    PCB* newPCB = new PCB(newPID, -1);
-    newPCB->status = P_RUNNING;
-    processManager->addProcess(newPCB, newPID);
-    AddrSpace* space = new AddrSpace(executable, newPCB);    
-    currentThread->space = space;
+	
+	// Construct the PCB for this (parentless) process
+	ProcessCB *pcb = processManager->constructPCB(currentThread, -1);
+
+	// Create the address space
+	bool success;
+    space = new AddrSpace(executable, pcb->getPID());
+	success = space->isCreated();
+	if(!success)
+	{
+		printf("Executable file is too large (size > max swap file size) %s\n", filename);
+		return;
+	}
+	
+	// Attach it to the current thread
+	currentThread->space = space;
+
 
     delete executable;			// close file
 
-    if ((space->getPCB())->getPID() == -1) {
-        printf("Unable to acquire valid PCB for process. Terminating.\n");
-        delete space;
-        return;
-    }
-
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
+
+
 
     machine->Run();			// jump to the user progam
     ASSERT(FALSE);			// machine->Run never returns;

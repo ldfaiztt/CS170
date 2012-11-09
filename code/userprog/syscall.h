@@ -124,6 +124,7 @@ void Fork(void (*func)());
  */
 void Yield();		
 
+
 #endif /* IN_ASM */
 
 #endif /* SYSCALL_H */
