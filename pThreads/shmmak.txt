@@ -1,0 +1,31 @@
+CC      = gcc
+CFLAGS  = 
+LDFLAGS =  -lpthread
+
+all:  shmserver shmclient forkexecshm 
+
+shmserver: shmserver.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+shmclient: shmclient.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+forkexecshm: forkexecshm.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+
+.c.o: 
+	$(CC)  $(CFLAGS) -c $<
+
+
+run:
+	./shmserver & ./shmclient
+
+run1:
+	./forkexecshm
+
+run2:
+	./forkexecshm2
+clean:
+	rm *.o shmserver shmclient forkexecshm 
+

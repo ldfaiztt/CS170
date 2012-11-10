@@ -1,0 +1,16 @@
+Arne Dahl Bjune 	arnedab@umail.ucsb.edu
+Hanne Riise Maehlum 	hannerii@umail.ucsb.edu
+
+1.1
+What happens is that each thread reads the same value, and then increases the value with one. Since all the threads read the same value they also writes the same value. In other words thread 0 first reads the value 0, then thread 1 reads the value 0 and so on until thread n has read the value 0. Then thread 0 increases the value with one so that the value is 1. Thread 1 to n also increases the value they saw with one and overwrites the value so that it still is 1.
+
+
+Code changes:
+synch.c
+Implemented Conditions and Locks
+
+synch.h
+added a few variables
+
+threadtest.c
+added semaphores and barrier to simpleThread

@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <pthread.h>
+
+#define NTHREADS 5
+void simpleFunction(int threadNumber);
+pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t finalMutex = PTHREAD_MUTEX_INITIALIZER;
+int  counter = 0;
+int workingThreads;
+
+main(){
+   pthread_t thread_id[NTHREADS];
+   int i, j;
+	workingThreads = NTHREADS+1;
+
+   for(i=0; i < NTHREADS; i++)   {
+      pthread_create( &thread_id[i], NULL, simpleFunction, i+1 );
+   }
+	
+	simpleFunction(0);	
+
+   for(j=0; j < NTHREADS; j++){
+      pthread_join( thread_id[j], NULL); 
+   }
+  
+	exit(0);
+   
+
+   
+}
+
+void simpleFunction(int threadNumber){
+      	int k;
+	for(k = 0; k < 5;k++){
+   		pthread_mutex_lock( &mutex1 );
+   		counter++;
+   		printf("*** thread %d sees value %d\n", threadNumber, counter);
+		pthread_mutex_unlock( &mutex1 );		
+		pthread_yield();
+	}
+	pthread_mutex_lock( &finalMutex );
+	workingThreads--;
+	pthread_mutex_unlock( &finalMutex );
+
+	while(workingThreads != 0){
+	pthread_yield();
+	}
+	printf("Thread %d sees final value %d\n", threadNumber, counter);
+
+}

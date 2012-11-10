@@ -1,0 +1,35 @@
+CC      = gcc
+CFLAGS  = 
+LDFLAGS = -lpthread
+
+all:  ex1  ex2 ex3 ex4 forkexecex copy
+
+ex1: pthreadsex1.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+ex2: pthreadsex2.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+ex3: pthreadsex3.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+ex4: pthreadsex4.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+forkexecex: forkexecex.o
+	$(CC) -o $@ $^ 
+
+copy: copy.o
+	$(CC) -o $@ $^ 
+
+
+#phreadsex1.o:phreadsex1.c
+#	$(CC) -c $(CFLAGS) -c $<
+
+.c.o: 
+	$(CC)  $(CFLAGS) -c $<
+
+
+clean:
+	rm *.o ex1 ex2 ex3 ex4 forkexecex copy 
+
