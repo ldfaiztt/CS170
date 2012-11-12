@@ -7,6 +7,7 @@
 
 #include "copyright.h"
 #include "system.h"
+#include "synch.h"
 
 // This defines *all* of the global data structures used by Nachos.
 // These are all initialized and de-allocated by this file.
@@ -29,16 +30,28 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
-#endif
+Lock* machineLock;
+
+char diskBuffer[PageSize]; // PageSize defined in machine.h
+Lock* diskBufferLock;
+
+MemoryManager* memManager;
+Lock* memManagerLock;
+
+ProcessManager* processManager;
+Lock* processManagerLock;
+
+SysOpenFileManager* fileManager;
+Lock* fileManagerLock;
+
+#endif // USER_PROGRAM
 
 #ifdef NETWORK
 PostOffice *postOffice;
 #endif
 
-
 // External definition, to allow us to take a pointer to this function
 extern void Cleanup();
-
 
 //----------------------------------------------------------------------
 // TimerInterruptHandler
@@ -149,7 +162,20 @@ Initialize(int argc, char **argv)
     
 #ifdef USER_PROGRAM
     machine = new Machine(debugUserProg);	// this must come first
-#endif
+    machineLock = new Lock("machineLock");
+
+    memManager = new MemoryManager();
+    memManagerLock = new Lock("memManagerLock");
+
+    diskBufferLock = new Lock("diskBufferLock");
+
+    processManager = new ProcessManager();
+    processManagerLock = new Lock("processManagerLock");
+
+    fileManager = new SysOpenFileManager();
+    fileManagerLock = new Lock("fileManagerLock");
+
+#endif // USER_PROGRAM
 
 #ifdef FILESYS
     synchDisk = new SynchDisk("DISK");
@@ -178,7 +204,19 @@ Cleanup()
     
 #ifdef USER_PROGRAM
     delete machine;
-#endif
+    delete machineLock;
+
+    delete memManager;
+    delete memManagerLock;
+
+    delete diskBufferLock;
+
+    delete processManager;
+    delete processManagerLock;
+
+    delete fileManager;
+    delete fileManagerLock;
+#endif // USER_PROGRAM
 
 #ifdef FILESYS_NEEDED
     delete fileSystem;
