@@ -37,8 +37,10 @@ INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
 all: shell matmult sort halt test test5 test5_2 test5_1\
-test4 test4_2 test4_1 test3 test3_2 test3_1 test2 org ncp ncp2 ncat mix_test2\
+test4 test4_2 test4_1 test3 test3_2 test3_1 test2 mix_test2\
 cp cat test1 mix_test1 mix_test
+
+#Fjernet: org ncp ncp2 ncat
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.c > strt.s

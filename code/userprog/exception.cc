@@ -116,7 +116,7 @@ void ExceptionHandler(ExceptionType which)
                 exitImpl();
                 break;
             case SC_Create:
-                printf("System Call: %d invoked Create\n", pcb->getPID());
+                printf("System Call: %d invoked Create %d %d \n", pcb->getPID(), which, type);
                 readFilenameFromUsertoKernel(filename);
                 createImpl(filename);
                 break;
