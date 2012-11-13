@@ -24,7 +24,7 @@ int main()
   
   Close( f0 );
   
-  Exec( "test4_1" );
+  Exec( "../test/test4_1" );
   
   Halt(0);
 }

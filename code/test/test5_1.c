@@ -1,4 +1,6 @@
 /* test5_1.c */
+/* --------- testing system calls : Exit, Exec, Fork */
+/* --------- size of the program : 11 pages          */
 
 #include "syscall.h"
 

@@ -37,10 +37,8 @@ INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
 all: shell matmult sort halt test test5 test5_2 test5_1\
-test4 test4_2 test4_1 test3 test3_2 test3_1 test2 mix_test2\
+test4 test4_2 test4_1 test3 test3_2 test3_1 test2 org ncp ncp2 ncat mix_test2\
 cp cat test1 mix_test1 mix_test
-
-#Fjernet: org ncp ncp2 ncat
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.c > strt.s
@@ -178,6 +176,11 @@ cat.o: cat.c
 cat: cat.o start.o
 	$(LD) $(LDFLAGS) start.o cat.o -o cat.coff
 	../bin/coff2noff cat.coff cat
+simpletest.o: simpletest.c
+	$(CC) $(CFLAGS) -c simpletest.c
+simpletest: simpletest.o start.o
+	$(LD) $(LDFLAGS) start.o simpletest.o -o simpletest.coff
+	../bin/coff2noff simpletest.coff simpletest
 
 test1.o: test1.c
 	$(CC) $(CFLAGS) -c test1.c

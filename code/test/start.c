@@ -1,13 +1,9 @@
-/* start.c 
+/* Start.s 
  *	Assembly language assist for user programs running on top of Nachos.
  *
  *	Since we don't want to pull in the entire C library, we define
  *	what we need for a user program here, namely Start and the system
  *	calls.
- *      
- *      Conceptually, this is an assembly language file. It has a .c suffix
- *      so that we can run the preprocessing step explicitly and gcc will
- *      not ignore the file because it has the wrong suffix.
  */
 
 #define IN_ASM

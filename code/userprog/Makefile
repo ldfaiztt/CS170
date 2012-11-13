@@ -187,7 +187,8 @@ threadtest.o: ../threads/threadtest.cc ../threads/copyright.h \
  ../threads/list.h ../machine/stats.h ../machine/timer.h \
  ../threads/synch.h ../userprog/ProcessManager.h ../threads/synch.h \
  ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
- ../userprog/sysopenfile.h
+ ../userprog/sysopenfile.h /usr/include/time.h /usr/include/bits/time.h \
+ /usr/include/bits/timex.h
 interrupt.o: ../machine/interrupt.cc ../threads/copyright.h \
  ../machine/interrupt.h ../threads/list.h ../threads/copyright.h \
  ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \

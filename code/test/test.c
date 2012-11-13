@@ -29,7 +29,6 @@ main()
     OutFid = Open("out");    
     Write("Test: First write!\n", 21, ConsoleOutput);
     
-
     Read(buffer, size, ConsoleInput);
     Write(buffer, size, ConsoleOutput);
     
@@ -37,10 +36,8 @@ main()
     Write("Test: Second write!\n", 22, OutFid);
 	
 	Close(OutFid);
-
-    Write("Test: ready to run fork\n", 26, ConsoleOutput);	
+	
     Fork(test_function1);
-    Write("Test: ready to run exec\n", 21, ConsoleOutput);
-    Exec("test1");
+    Exec("../test/test1");
 
 }

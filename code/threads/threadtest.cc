@@ -12,10 +12,10 @@
 #include "copyright.h"
 #include "system.h"
 #include "synch.h"
+#include "time.h"
 
 // testnum is set in main.cc
 int testnum = 1;
-int workingThreads;
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -26,80 +26,333 @@ int workingThreads;
 //	purposes.
 //----------------------------------------------------------------------
 
-#if defined(CHANGED) && defined(THREADS)
+#ifdef CHANGED
 
-	#if defined(HW1_SEMAPHORES)
-		//extern void Semaphore(char* debugName, int initialValue);
-		int SharedVariable;
-		Semaphore *sharedVariableSemaphore = new Semaphore("SharedVarSem", 1);
-		Semaphore *barrierSemaphore = new Semaphore("BarrerierSem",1);
+#ifdef HW1_LOCKS
+int SharedVariable;
+Lock control("SharedVariable control");
+Lock barrier("Barrier control");
+int numRemainingThreads = 0; // busy wait each thread until this is finished
 
-		void
-		SimpleThread(int which)
-		{
-	  		int num, val;
+void SimpleThread(int which) {
 
-	 		for(num = 0; num < 5; num++) {
-				sharedVariableSemaphore ->P();
-	    			val = SharedVariable;
+    DEBUG('t', "SimpleThread running with locks controlling access.\n");
+    int num, val; 
 
-	    			printf("*** thread %d sees value %d\n", which, val);
-	    			currentThread->Yield();
-	    			SharedVariable = val+1;
-				sharedVariableSemaphore ->V();
-	    			currentThread->Yield();
-				//printf("CurrentThread: %d\n", currentThread);
-	  		}
-			barrierSemaphore ->P();
-			workingThreads--;
-			barrierSemaphore ->V();
-			while(workingThreads != 0){
-				currentThread->Yield();
-			}
-	  		val = SharedVariable;
-			printf("Thread %d sees final value %d\n", which, val);
-		}
+    for(num = 0; num < 5; num++) { 
+        control.Acquire();
+        val = SharedVariable;
+        printf("*** thread %d sees value %d\n", which, val);
+        SharedVariable = val+1;
+        control.Release();
+        currentThread->Yield(); 
+    } 
 
-	#else
-		int SharedVariable;
+    barrier.Acquire();
+    numRemainingThreads--;
+    barrier.Release();
 
-		void
-		SimpleThread(int which)
-		{
-	  		int num, val;
-
-	 		for(num = 0; num < 5; num++) {
-
-	    			val = SharedVariable;
-	    			printf("*** thread %d sees value %d\n", which, val);
-	    			currentThread->Yield();
-	    			SharedVariable = val+1;
-	    			currentThread->Yield();
-				
-	  		}
-	  	val = SharedVariable;
-	  	printf("Thread %d sees final value %d\n", which, val);
-		}
-	#endif
-
-#else 
-
-void
-SimpleThread(int which)
-{
-    int num;
-
-    for (num = 0; num < 5; num++) {
-        printf("*** thread %d looped %d times\n", which, num);
+    while (numRemainingThreads > 0) {
         currentThread->Yield();
     }
+
+    val = SharedVariable; 
+    printf("Thread %d sees final value %d\n", which, val); 
+}
+
+#elif HW1_SEMAPHORES
+int SharedVariable;
+int NUM_LICENCES = 1;
+Semaphore control("SharedVariable control", NUM_LICENCES);
+Semaphore barrier("Barrier control", 1);
+
+int numRemainingThreads = 0; // busy wait each thread until this is finished
+
+void SimpleThread(int which) { 
+
+    DEBUG('t', "SimpleThread running with semaphores controlling access.\n");
+    int num, val; 
+
+    for(num = 0; num < 5; num++) { 
+        control.P();
+        val = SharedVariable;
+        printf("*** thread %d sees value %d\n", which, val);
+        SharedVariable = val+1;
+        control.V();
+        currentThread->Yield(); 
+    } 
+
+    barrier.P();
+    numRemainingThreads--;
+    barrier.V();
+
+    while (numRemainingThreads > 0) {
+        currentThread->Yield();
+    }
+
+    val = SharedVariable; 
+    printf("Thread %d sees final value %d\n", which, val); 
+}
+
+#else
+int SharedVariable;
+
+void SimpleThread(int which) { 
+
+    DEBUG('t', "SimpleThread running with no shared variable control; default\n");
+    int num, val; 
+
+    for(num = 0; num < 5; num++) { 
+        val = SharedVariable;
+        printf("*** thread %d sees value %d\n", which, val);
+        currentThread->Yield();
+        SharedVariable = val+1;
+        currentThread->Yield(); 
+    } 
+    val = SharedVariable; 
+    printf("Thread %d sees final value %d\n", which, val); 
 }
 #endif
+
+
+#ifdef HW1_LAUNDRY
+
+int PARALLEL_MACHINE_ACCESSES = 1;
+int MACHINE_FREE = 1;
+int MACHINE_BUSY = 0;
+const int NMACHINES = 2;
+int available[NMACHINES];
+
+#ifdef HW1_LOCKS // FIX LAUNDRY WITH LOCKS/COND
+
+Condition* availableMachine = new Condition("Available machines");
+Lock* controlCond = new Lock("Controlling condition variable");
+Lock* machineHandler = new Lock("Machine handler");
+
+int allocate(int personID) /* Returns index of available machine */ {
+
+    DEBUG('l', "Trying to allocate a machine to person %d\n", personID);
+    int i;
+    bool machineAcquired = false;
+
+    while (!machineAcquired) {
+
+        /* Try to acquire a washing machine */
+        machineHandler->Acquire();
+        DEBUG('l', "Machine handler acquried for person %d\n", personID);
+        int machineNum = 0;
+        for (machineNum = 0; machineNum < NMACHINES; machineNum++) {
+
+            if (available[machineNum] == MACHINE_FREE) {
+                available[machineNum] = MACHINE_BUSY;
+                machineHandler->Release();
+                machineAcquired = true;
+                break;
+            }
+        }
+
+        if (machineAcquired) {
+            DEBUG('l', "Machine %d allocated to person %d\n", machineNum, personID);
+            return machineNum;
+        } else {
+            DEBUG('l', "Person %d could not be allocated a machine.  Sleeping.\n", personID);
+            machineHandler->Release();
+            controlCond->Acquire();
+            availableMachine->Wait(controlCond);
+            controlCond->Release();
+        }
+    }
+}
+
+void release(int machineNum) {
+    
+    /* Mark machine as free */
+    machineHandler->Acquire();
+    available[machineNum] = MACHINE_FREE;
+    machineHandler->Release();
+    DEBUG('l', "Machine %d successfully released\n", machineNum);
+
+    /* Let the people waiting know the machine is free */
+    DEBUG('l', "Letting people know machine %d is free\n", machineNum);
+    controlCond->Acquire();
+    availableMachine->Broadcast(controlCond);
+    controlCond->Release();
+}
+
+#elif HW1_SEMAPHORES // FIX LAUNDRY WITH SEMAPHORES
+
+Semaphore* availableMachines = new Semaphore("Available machines", NMACHINES);
+Semaphore* machineHandler = new Semaphore("Machines", PARALLEL_MACHINE_ACCESSES);
+
+int allocate(int personID) /* Returns index of available machine */ {
+
+    DEBUG('l', "Semap NACHOS impl: Trying to allocate a machine to person %d\n", personID);
+    availableMachines->P();
+    machineHandler->P();
+
+    DEBUG('l', "Semap impl: Allocating a machine to a person\n");
+    while (1) { // account for two machines wanting the same one.
+        int i;
+        for (i = 0; i < NMACHINES; i++) {
+            if (available[i] == MACHINE_FREE) {
+                available[i] = MACHINE_BUSY;
+                DEBUG('l', "Semap NACHOS impl: Allocating %d to person %d\n", i, personID);
+                machineHandler->V();
+                return i;
+            }
+        }
+    }
+}
+
+void release(int machine) { /* Release machine */
+
+    machineHandler->P();
+    DEBUG('l', "Semaphores impl: Releasing machine %d for usage\n", machine);
+    available[machine] = MACHINE_FREE;
+    machineHandler->V();
+    availableMachines->V();
+}
+
+#else // USE DEFAULT LAUNDRY CODE
+
+Semaphore* availableMachines = new Semaphore("Available machines", NMACHINES);
+
+int allocate(int personID) /* Returns index of available machine */ { 
+    DEBUG('l', "Default NACHOS impl: Trying to allocate a machine to person %d\n", personID);
+    int i; 
+    availableMachines->P();
+    for (i=0; i < NMACHINES; i++) {
+        if (available[i] == MACHINE_FREE) { 
+            available[i] = MACHINE_BUSY; 
+            DEBUG('l', "Default NACHOS impl: Allocating %d to person %d\n", i, personID);
+            return i; 
+        } 
+    }
+} 
+
+void release(int machine) /* Release machine */ { 
+    DEBUG('l', "Default NACHOS impl: Releasing a machine\n");
+    available[machine] = MACHINE_FREE; 
+    availableMachines->V();
+}
+
+#endif // Choice b/w how to sync laundry code
+
+void doLaundry(int personID) { /* A single person doing a single load */
+
+    DEBUG('l', "Person %d is attempting to get a machine\n", personID);
+    time_t startLaundryTime;
+    int machine = allocate(personID);
+    startLaundryTime = time(NULL); // get current time
+    DEBUG('l', "Person %d is doing laundry\n", personID);
+    while (difftime(time(NULL),startLaundryTime) < 3) { // wait while doing laundry
+        currentThread->Yield();
+    }
+    DEBUG('l', "Person %d is done with laundry and is releasing the machine\n", personID);
+    release(machine);
+}
+
+void setAllMachinesToFree() {
+
+    DEBUG('l', "Setting all machines to free\n");
+    int i = 0;
+    for (i = 0; i < NMACHINES; i++) {
+        available[i] = MACHINE_FREE;
+    }
+}
+
+void openLaundromat(int numCustomers) { /* Num of machines is a defined variable */
+
+    numCustomers = numCustomers > 0 ? numCustomers : 5; // default to 5 customers
+    DEBUG('l', "Num customers: %d\n", numCustomers);
+    DEBUG('l', "Num machines: %d\n", NMACHINES);
+
+    DEBUG('l', "Opening laundromat for business\n");
+    setAllMachinesToFree();
+    int i;
+    Thread* t;
+    for (i = 0; i < numCustomers; i++) {
+        DEBUG('l', "Forking a new person to do laundry\n");
+        t = new Thread("person");
+        t->Fork(doLaundry, i);
+    }
+}
+
+#endif // All of laundry code
 
 //----------------------------------------------------------------------
 // ThreadTest1
 // 	Set up a ping-pong between two threads, by forking a thread 
 //	to call SimpleThread, and then calling SimpleThread ourselves.
+//----------------------------------------------------------------------
+
+void
+ThreadTest1(int n)
+{
+    DEBUG('t', "Entering ThreadTest1\n");
+
+#ifdef HW1_LOCKS
+    DEBUG('t', "Using locks\n");
+#elif HW1_SEMAPHORES
+    DEBUG('t', "Using semaphores\n");
+#else
+    DEBUG('t', "Not using semaphores or locks\n");
+#endif
+    
+    int i = 0;
+    Thread* t = NULL;
+    for (i = 1; i <= n; i++) {
+        DEBUG('t', "Making and forking thread #%d\n", i);
+        t = new Thread("forked thread");
+        t->Fork(SimpleThread, i);
+    }
+
+    SimpleThread(0);
+}
+
+//----------------------------------------------------------------------
+// ThreadTest
+// 	Invoke a test routine.
+//----------------------------------------------------------------------
+
+void
+ThreadTest(int n)
+{
+    if (n < 0) {
+        printf("Setting argument -q to 4.  You can't specify a negative num");
+        n = 4;
+    }
+    //numRemainingThreads = n + 1;
+
+    ThreadTest1(n);
+}
+
+#else // Use the default nachos code
+
+//----------------------------------------------------------------------
+// SimpleThread
+//      Loop 5 times, yielding the CPU to another ready thread 
+//      each iteration.
+//
+//      "which" is simply a number identifying the thread, for debugging
+//      purposes.
+//----------------------------------------------------------------------
+
+void
+SimpleThread(int which)
+{
+    int num;
+    
+    for (num = 0; num < 5; num++) {
+        printf("*** thread %d looped %d times\n", which, num);
+        currentThread->Yield();
+    }
+}
+
+//----------------------------------------------------------------------
+// ThreadTest1
+//      Set up a ping-pong between two threads, by forking a thread 
+//      to call SimpleThread, and then calling SimpleThread ourselves.
 //----------------------------------------------------------------------
 
 void
@@ -115,220 +368,20 @@ ThreadTest1()
 
 //----------------------------------------------------------------------
 // ThreadTest
-// 	Invoke a test routine.
+//      Invoke a test routine.
 //----------------------------------------------------------------------
 
-  #if defined(CHANGED) && defined(THREADS)
-    void
-	ThreadTest(int n)
-	{
-    	switch (testnum) {
-    	case 1:
-		DEBUG('t', "Entering ThreadTest1");
-		workingThreads = n + 1;
-		for(int i = 1; i < n+1;i++){
-			Thread *t = new Thread("forked thread");
-			t->Fork(SimpleThread, i);
-		}
-		SimpleThread(0);		
-		break;
-    	default:
-		printf("No test specified.\n");
-		break;
-    	}
-	}
-
-  #else
-     void
-	ThreadTest()
-	{
-    	switch (testnum) {
-    	case 1:
-		ThreadTest1();
-		break;
-    	default:
-		printf("No test specified.\n");
-		break;
-    	}
-	}
-
-  #endif
-
-
-#if defined(HW1_LAUNDRY_LC)
-// --------------------------- LAUNDROMAT MONITOR ------------------
-// This part uses locks and condition variables to synchronize in the laundromat problem. 
-
-Lock *checkLock = new Lock("checkLock");
-Condition *cd = new Condition("cd");
-
-#define NMACHINES 10
-int freeMachines = NMACHINES;
-int available [NMACHINES];
-
-
-int laundromatAllocate() /* Returns index of available machine. */
+void
+ThreadTest()
 {
-	checkLock->Acquire();
-	while(freeMachines ==0){
-		cd->Wait(checkLock);
-	}
-	
-	for(int i = 0; i < NMACHINES; i++){
-		if(available[i] == 1){
-			available[i] = 0;
-			freeMachines--;
-			checkLock->Release();
-			return i;
-		}
-	}
-	return -1;
-}
-void laundromatRelease(int machine) /* Release machine */
-{
-
-	checkLock->Acquire();
-	available[machine] = 1;
-	freeMachines++;
-	cd->Signal(checkLock);
-	checkLock->Release();
-
-}
-
-
-void laundromatCustomer(int customerNumber)
-{
-    for(int i=0; i<6; i++)
-    {
-        int assignedMachine = laundromatAllocate();
-        printf("Station %d assigned machine %d\n", customerNumber, assignedMachine);
-        laundromatRelease(assignedMachine);
-        printf("Machine %d has been released\n", assignedMachine);
+    switch (testnum) {
+    case 1:
+        ThreadTest1();
+        break;
+    default:
+        printf("No test specified.\n");
+        break;
     }
 }
 
-void runStationOne(int stationNumber)
-{
-    //We have 10 machines. Station 1 needs to allocate 7 machines.
-
-    // Station 1 gets 3 machines then Yields
-    int assignedMachine1 = laundromatAllocate();    printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine1, freeMachines);
-    int assignedMachine2 = laundromatAllocate();    printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine2, freeMachines);
-    int assignedMachine3 = laundromatAllocate();     printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine3, freeMachines);
-    currentThread->Yield();
-
-    // Station 1 gets 4 machines then Yields
-    int assignedMachine4 = laundromatAllocate();     printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine4, freeMachines);
-    int assignedMachine5 = laundromatAllocate();     printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine5, freeMachines);
-    int assignedMachine6 = laundromatAllocate();     printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine6, freeMachines);
-    int assignedMachine7 = laundromatAllocate();     printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine7, freeMachines);
-    currentThread->Yield();
-
-    // Station 1 releases 2 machines and Yealds
-    laundromatRelease(assignedMachine1);             printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine1, freeMachines);
-    laundromatRelease(assignedMachine2);             printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine2, freeMachines);
-    laundromatRelease(assignedMachine3);             printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine3, freeMachines);
-    currentThread->Yield();
-    // At this point Station 2 has enough resaurces to continue allocation
-
-    // Station 1 releases 2 machines and Yealds
-    laundromatRelease(assignedMachine4);            printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine4, freeMachines);
-    laundromatRelease(assignedMachine5);            printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine5, freeMachines);
-    laundromatRelease(assignedMachine6);            printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine6, freeMachines);
-    laundromatRelease(assignedMachine7);            printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine7, freeMachines);
-    // Station 1 is done
-    printf("Station 1 is done!\n");
-}
-
-void runStationTwo(int stationNumber)
-{
-    //We have 10 machines. Station 2 needs to allocate 6 machines.
-
-    // Station 2 gets 2 machines then Yields
-    int assignedMachine1 = laundromatAllocate();        printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine1, freeMachines);
-    int assignedMachine2 = laundromatAllocate();        printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine2, freeMachines);
-    currentThread->Yield();
-    // S1: has(2) needs(4)
-
-    // Station 2 will try to get 4 more machines but there is only one left
-    // so it will go to sleep after the first allocation and wait for Station 1
-    // to release the resources
-    int assignedMachine3 = laundromatAllocate();        printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine3, freeMachines);
-    int assignedMachine4 = laundromatAllocate(); //This is where Station 2 should be sleeping
-    printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine4, freeMachines);
-    int assignedMachine5 = laundromatAllocate();        printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine5, freeMachines);
-    int assignedMachine6 = laundromatAllocate();        printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine6, freeMachines);
-    currentThread->Yield();
-
-    //Station 2 will release all its machines
-    laundromatRelease(assignedMachine1);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine1, freeMachines);
-    laundromatRelease(assignedMachine2);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine2, freeMachines);
-    laundromatRelease(assignedMachine3);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine3, freeMachines);
-    laundromatRelease(assignedMachine4);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine4, freeMachines);
-    laundromatRelease(assignedMachine5);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine5, freeMachines);
-    laundromatRelease(assignedMachine6);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine6, freeMachines);
-    //Station 2 is done
-    printf("Station 2 is done!\n");
-}
-
-void runStationThree(int stationNumber)
-{
-    //We have 10 machines. Station 3 needs to allocate 5 machines.
-
-    // Station 3 gets 1 machines then Yields
-    int assignedMachine1 = laundromatAllocate();        printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine1, freeMachines);
-        currentThread->Yield();
-    // S3: has(1) needs(4)
-
-    // Station 3 will try to get 4 more machines but there is only one left
-    // so it will go to sleep after the first allocation and wait for Station 1
-    // to release the resources
-    int assignedMachine2 = laundromatAllocate();        printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine2, freeMachines);
-    int assignedMachine3 = laundromatAllocate();        printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine3, freeMachines);
-    int assignedMachine4 = laundromatAllocate();     	printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine4, freeMachines);
-    int assignedMachine5 = laundromatAllocate();        printf("Station %d assigned machine %d (%d machines left)\n", stationNumber, assignedMachine5, freeMachines);
-    currentThread->Yield();
-
-    //Station 3 will release all its machines
-    laundromatRelease(assignedMachine1);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine1, freeMachines);
-    laundromatRelease(assignedMachine2);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine2, freeMachines);
-    laundromatRelease(assignedMachine3);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine3, freeMachines);
-    laundromatRelease(assignedMachine4);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine4, freeMachines);
-    laundromatRelease(assignedMachine5);                printf("Station %d released machine %d (%d machines left)\n", stationNumber, assignedMachine5, freeMachines);
-    
-    //Station 3 is done
-    printf("Station %s is done!\n",stationNumber);
-}
-void runStation(int stationNumber, int machinesNeeded){
-	int assignedMachines [machinesNeeded];	
-	for(int i=0;i<machinesNeeded;i++){
-		
-	}
-	for(int i=0;i<machinesNeeded;i++){
-		
-	}
-	printf("Station %d is done!\n");
-}
-void laundromatTest()
-{
-    // Mark all of the machines as available
-    for(int i=0; i<NMACHINES; i++)
-        available[i] = 1;
-
-    	Thread *station1 = new Thread("Laundromat station 1");
-    	Thread *station2 = new Thread("Laundromat station 2");
-	Thread *station3 = new Thread("Laundromat station 3");
-	station1->Fork(runStationOne, 1);
-	station2->Fork(runStationTwo, 2);
-	station3->Fork(runStationThree, 3);	
-	//station3->Fork(runStation, 3,5);
-	//station3->Fork(runStation, {3,4});
-	
-}
-
-
-
-
-#endif
-
-
+#endif // CHANGED

@@ -76,13 +76,16 @@ class Lock {
 					// holds this lock.  Useful for
 					// checking in Release, and in
 					// Condition variable ops below.
-	void* threadHolding;
+
   private:
-	char* name;				// for debugging
-	bool free;
-	List *queue;
-		
-    // plus some other stuff you'll need to define
+    char* name;				// for debugging
+#ifdef CHANGED
+
+    int value;                          // 1 if available, 0 if taken
+    List* queue;                         // threads waiting for the lock
+    Thread* lockingThread;              // if value == LOCK_BUSY,
+                                        // this is the thread in posession
+#endif
 };
 
 // The following class defines a "condition variable".  A condition
@@ -132,9 +135,11 @@ class Condition {
     void Broadcast(Lock *conditionLock);// the currentThread for all of 
 					// these operations
 
-	List *queue;
   private:
     char* name;
-    // plus some other stuff you'll need to define
+
+#ifdef CHANGED
+    List* queue;                        // threads waiting for condition
+#endif
 };
 #endif // SYNCH_H

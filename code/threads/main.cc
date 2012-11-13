@@ -59,7 +59,13 @@ extern int testnum;
 
 // External functions used by this file
 
-extern void ThreadTest(int numberOfThreads), Copy(char *unixFile, char *nachosFile);
+#if defined(THREADS) && defined(CHANGED)
+extern void ThreadTest(int);
+extern void openLaundromat(int);
+#else
+extern void ThreadTest(void);
+#endif
+extern void Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
@@ -88,6 +94,38 @@ main(int argc, char **argv)
     (void) Initialize(argc, argv);
     
 #ifdef THREADS
+
+
+#if defined(CHANGED) && defined(HW1_LAUNDRY)
+    int numCustomers = 0;
+    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
+      argCount = 1;
+      switch (argv[0][1]) {
+      case 'q':
+        numCustomers = atoi(argv[1]);
+        argCount++;
+        break;
+      default:
+        testnum = 1;
+        break;
+      }
+    }
+    openLaundromat(numCustomers);
+#elif defined(CHANGED) // Just run threads test with changed code
+    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
+      argCount = 1;
+      switch (argv[0][1]) {
+      case 'q':
+        testnum = atoi(argv[1]);
+        argCount++;
+        break;
+      default:
+        testnum = -1;
+        break;
+      }
+    }
+    ThreadTest(testnum);
+#else // Default NACHOS code
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
       argCount = 1;
       switch (argv[0][1]) {
@@ -100,14 +138,10 @@ main(int argc, char **argv)
         break;
       }
     }
-	int tall = 4;
-    ThreadTest(tall);
-#endif
+    ThreadTest();
+#endif // CHANGED
 
-#if defined(HW1_LAUNDRY_LC)
-	extern void laundromatTest();
-	laundromatTest();
-#endif
+#endif // THREADS
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 	argCount = 1;

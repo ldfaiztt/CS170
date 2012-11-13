@@ -12,7 +12,7 @@ void test_function2()
   /* maintain this function in memory */
   for( i=0 ; i < 10 ; ++i ) Yield();
 
-  Exit(1);
+  Exit(1);  
 }
 
 void test_function3()
@@ -21,7 +21,7 @@ void test_function3()
   Write("# FORKED 3-1 !!\n", 22, ConsoleOutput);
   Write("# FORKED 3-2 !!\n", 25, ConsoleOutput);
   Yield();
-  Exit(1);
+  Exit(1);  
 }
 
 char temp[2500];

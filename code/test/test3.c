@@ -6,11 +6,14 @@
 
 int main()
 {
-  int i;
+  int i, x;
+  x = 100;
 
-  for( i=0 ; i < 5 ; ++i ) Exec( "test3_1" );
+  for( i=0 ; i < 5 ; ++i ) Exec( "../test/test3_1" );
  
-  for( i=0 ; i < 5 ; ++i ) Join( Exec( "test3_2" ) );
+  for( i=0 ; i < 5 ; ++i ) Join( Exec( "../test/test3_2" ) );
+
+  x = 400;
   
   Halt(0);
 }

@@ -62,7 +62,7 @@ SwapHeader (NoffHeader *noffH)
 //----------------------------------------------------------------------
 
 AddrSpace::AddrSpace(OpenFile *executable, PCB* pcb)
-//there is some bug in this code
+//there is a bug in this code
 {
     NoffHeader noffH;
     unsigned int i, size;
@@ -99,6 +99,7 @@ AddrSpace::AddrSpace(OpenFile *executable, PCB* pcb)
         for (i = 0; i < numPages; i++) {
             pageTable[i].virtualPage = i;
             pageTable[i].physicalPage = i;
+            //pageTable[i].physicalPage = memManager->getPage();
             pageTable[i].valid = TRUE;
             pageTable[i].use = FALSE;
             pageTable[i].dirty = FALSE;

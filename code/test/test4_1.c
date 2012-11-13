@@ -23,7 +23,7 @@ int main()
   Close( f0 );
   Close( f1 ); 
     
-  Exec( "test4_2" );
+  Exec( "../test/test4_2" );
 
   Close( f0 );
   Close( f1 );

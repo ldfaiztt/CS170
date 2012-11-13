@@ -10,6 +10,7 @@ void test_function1()
   Yield();
   
   Write("# FORKED 1-2 !!\n", 23, ConsoleOutput);
+  Exit(1);
 }
 
 void

@@ -43,9 +43,13 @@ main.o: ../threads/main.cc ../threads/copyright.h ../threads/utility.h \
  /usr/include/xlocale.h ../threads/system.h ../threads/thread.h \
  ../machine/machine.h ../threads/utility.h ../machine/translate.h \
  ../machine/disk.h ../userprog/addrspace.h ../filesys/filesys.h \
- ../filesys/openfile.h ../threads/scheduler.h ../threads/list.h \
+ ../filesys/openfile.h ../userprog/pcb.h ../userprog/bitmap.h \
+ ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h ../threads/scheduler.h ../threads/list.h \
  ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
- ../machine/timer.h
+ ../machine/timer.h ../threads/synch.h ../userprog/ProcessManager.h \
+ ../threads/synch.h ../userprog/MemoryManager.h \
+ ../userprog/sysopenfilemanager.h ../userprog/sysopenfile.h
 list.o: ../threads/list.cc ../threads/copyright.h ../threads/list.h \
  ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
  ../threads/copyright.h /usr/include/stdio.h /usr/include/features.h \
@@ -71,8 +75,13 @@ scheduler.o: ../threads/scheduler.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../threads/thread.h ../machine/machine.h \
  ../threads/utility.h ../machine/translate.h ../machine/disk.h \
  ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
+ ../userprog/pcb.h ../userprog/bitmap.h ../filesys/openfile.h \
+ ../userprog/useropenfile.h ../userprog/MemoryManager.h \
  ../threads/system.h ../machine/interrupt.h ../threads/list.h \
- ../machine/stats.h ../machine/timer.h
+ ../machine/stats.h ../machine/timer.h ../threads/synch.h \
+ ../userprog/ProcessManager.h ../threads/synch.h \
+ ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
+ ../userprog/sysopenfile.h
 synch.o: ../threads/synch.cc ../threads/copyright.h ../threads/synch.h \
  ../threads/thread.h ../threads/utility.h ../threads/bool.h \
  ../machine/sysdep.h ../threads/copyright.h /usr/include/stdio.h \
@@ -86,9 +95,13 @@ synch.o: ../threads/synch.cc ../threads/copyright.h ../threads/synch.h \
  /usr/include/bits/sys_errlist.h /usr/include/string.h \
  /usr/include/xlocale.h ../machine/machine.h ../threads/utility.h \
  ../machine/translate.h ../machine/disk.h ../userprog/addrspace.h \
- ../filesys/filesys.h ../filesys/openfile.h ../threads/list.h \
- ../threads/system.h ../threads/scheduler.h ../machine/interrupt.h \
- ../threads/list.h ../machine/stats.h ../machine/timer.h
+ ../filesys/filesys.h ../filesys/openfile.h ../userprog/pcb.h \
+ ../userprog/bitmap.h ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h ../threads/list.h ../threads/system.h \
+ ../threads/scheduler.h ../machine/interrupt.h ../threads/list.h \
+ ../machine/stats.h ../machine/timer.h ../userprog/ProcessManager.h \
+ ../threads/synch.h ../userprog/MemoryManager.h \
+ ../userprog/sysopenfilemanager.h ../userprog/sysopenfile.h
 synchlist.o: ../threads/synchlist.cc ../threads/copyright.h \
  ../threads/synchlist.h ../threads/list.h ../threads/utility.h \
  ../threads/bool.h ../machine/sysdep.h ../threads/copyright.h \
@@ -103,7 +116,9 @@ synchlist.o: ../threads/synchlist.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../threads/synch.h ../threads/thread.h \
  ../machine/machine.h ../threads/utility.h ../machine/translate.h \
  ../machine/disk.h ../userprog/addrspace.h ../filesys/filesys.h \
- ../filesys/openfile.h
+ ../filesys/openfile.h ../userprog/pcb.h ../userprog/bitmap.h \
+ ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h
 system.o: ../threads/system.cc ../threads/copyright.h ../threads/system.h \
  ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
  ../threads/copyright.h /usr/include/stdio.h /usr/include/features.h \
@@ -117,8 +132,13 @@ system.o: ../threads/system.cc ../threads/copyright.h ../threads/system.h \
  /usr/include/xlocale.h ../threads/thread.h ../machine/machine.h \
  ../threads/utility.h ../machine/translate.h ../machine/disk.h \
  ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
+ ../userprog/pcb.h ../userprog/bitmap.h ../filesys/openfile.h \
+ ../userprog/useropenfile.h ../userprog/MemoryManager.h \
  ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
- ../threads/list.h ../machine/stats.h ../machine/timer.h
+ ../threads/list.h ../machine/stats.h ../machine/timer.h \
+ ../threads/synch.h ../userprog/ProcessManager.h ../threads/synch.h \
+ ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
+ ../userprog/sysopenfile.h
 thread.o: ../threads/thread.cc ../threads/copyright.h ../threads/thread.h \
  ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
  ../threads/copyright.h /usr/include/stdio.h /usr/include/features.h \
@@ -131,10 +151,14 @@ thread.o: ../threads/thread.cc ../threads/copyright.h ../threads/thread.h \
  /usr/include/bits/sys_errlist.h /usr/include/string.h \
  /usr/include/xlocale.h ../machine/machine.h ../threads/utility.h \
  ../machine/translate.h ../machine/disk.h ../userprog/addrspace.h \
- ../filesys/filesys.h ../filesys/openfile.h ../threads/switch.h \
- ../threads/synch.h ../threads/list.h ../threads/system.h \
- ../threads/scheduler.h ../machine/interrupt.h ../threads/list.h \
- ../machine/stats.h ../machine/timer.h
+ ../filesys/filesys.h ../filesys/openfile.h ../userprog/pcb.h \
+ ../userprog/bitmap.h ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h ../threads/switch.h ../threads/synch.h \
+ ../threads/list.h ../threads/system.h ../threads/scheduler.h \
+ ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
+ ../machine/timer.h ../userprog/ProcessManager.h ../threads/synch.h \
+ ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
+ ../userprog/sysopenfile.h
 utility.o: ../threads/utility.cc ../threads/copyright.h \
  ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
  ../threads/copyright.h /usr/include/stdio.h /usr/include/features.h \
@@ -160,9 +184,14 @@ threadtest.o: ../threads/threadtest.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../threads/thread.h ../machine/machine.h \
  ../threads/utility.h ../machine/translate.h ../machine/disk.h \
  ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
+ ../userprog/pcb.h ../userprog/bitmap.h ../filesys/openfile.h \
+ ../userprog/useropenfile.h ../userprog/MemoryManager.h \
  ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
  ../threads/list.h ../machine/stats.h ../machine/timer.h \
- ../threads/synch.h
+ ../threads/synch.h ../userprog/ProcessManager.h ../threads/synch.h \
+ ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
+ ../userprog/sysopenfile.h /usr/include/time.h /usr/include/bits/time.h \
+ /usr/include/bits/timex.h
 interrupt.o: ../machine/interrupt.cc ../threads/copyright.h \
  ../machine/interrupt.h ../threads/list.h ../threads/copyright.h \
  ../threads/utility.h ../threads/bool.h ../machine/sysdep.h \
@@ -177,8 +206,13 @@ interrupt.o: ../machine/interrupt.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../threads/system.h ../threads/thread.h \
  ../machine/machine.h ../threads/utility.h ../machine/translate.h \
  ../machine/disk.h ../userprog/addrspace.h ../filesys/filesys.h \
- ../filesys/openfile.h ../threads/scheduler.h ../threads/list.h \
- ../machine/interrupt.h ../machine/stats.h ../machine/timer.h
+ ../filesys/openfile.h ../userprog/pcb.h ../userprog/bitmap.h \
+ ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h ../threads/scheduler.h ../threads/list.h \
+ ../machine/interrupt.h ../machine/stats.h ../machine/timer.h \
+ ../threads/synch.h ../userprog/ProcessManager.h ../threads/synch.h \
+ ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
+ ../userprog/sysopenfile.h
 sysdep.o: ../machine/sysdep.cc ../threads/copyright.h \
  /usr/include/stdio.h /usr/include/features.h /usr/include/sys/cdefs.h \
  /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
@@ -220,9 +254,13 @@ sysdep.o: ../machine/sysdep.cc ../threads/copyright.h \
  ../threads/bool.h ../machine/sysdep.h ../threads/system.h \
  ../threads/thread.h ../machine/machine.h ../threads/utility.h \
  ../machine/translate.h ../machine/disk.h ../userprog/addrspace.h \
- ../filesys/filesys.h ../filesys/openfile.h ../threads/scheduler.h \
- ../threads/list.h ../machine/interrupt.h ../machine/stats.h \
- ../machine/timer.h
+ ../filesys/filesys.h ../filesys/openfile.h ../userprog/pcb.h \
+ ../userprog/bitmap.h ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h ../threads/scheduler.h ../threads/list.h \
+ ../machine/interrupt.h ../machine/stats.h ../machine/timer.h \
+ ../threads/synch.h ../userprog/ProcessManager.h ../threads/synch.h \
+ ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
+ ../userprog/sysopenfile.h
 stats.o: ../machine/stats.cc ../threads/copyright.h ../threads/utility.h \
  ../threads/copyright.h ../threads/bool.h ../machine/sysdep.h \
  /usr/include/stdio.h /usr/include/features.h /usr/include/sys/cdefs.h \
@@ -247,9 +285,13 @@ timer.o: ../machine/timer.cc ../threads/copyright.h ../machine/timer.h \
  /usr/include/xlocale.h ../threads/system.h ../threads/utility.h \
  ../threads/thread.h ../machine/machine.h ../machine/translate.h \
  ../machine/disk.h ../userprog/addrspace.h ../filesys/filesys.h \
- ../filesys/openfile.h ../threads/scheduler.h ../threads/list.h \
+ ../filesys/openfile.h ../userprog/pcb.h ../userprog/bitmap.h \
+ ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h ../threads/scheduler.h ../threads/list.h \
  ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
- ../machine/timer.h
+ ../machine/timer.h ../threads/synch.h ../userprog/ProcessManager.h \
+ ../threads/synch.h ../userprog/MemoryManager.h \
+ ../userprog/sysopenfilemanager.h ../userprog/sysopenfile.h
 addrspace.o: ../userprog/addrspace.cc ../threads/copyright.h \
  ../threads/system.h ../threads/copyright.h ../threads/utility.h \
  ../threads/bool.h ../machine/sysdep.h /usr/include/stdio.h \
@@ -264,9 +306,13 @@ addrspace.o: ../userprog/addrspace.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../threads/thread.h ../machine/machine.h \
  ../threads/utility.h ../machine/translate.h ../machine/disk.h \
  ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
+ ../userprog/pcb.h ../userprog/bitmap.h ../filesys/openfile.h \
+ ../userprog/useropenfile.h ../userprog/MemoryManager.h \
  ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
  ../threads/list.h ../machine/stats.h ../machine/timer.h \
- ../userprog/addrspace.h ../bin/noff.h
+ ../threads/synch.h ../userprog/ProcessManager.h ../threads/synch.h \
+ ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
+ ../userprog/sysopenfile.h ../userprog/addrspace.h ../bin/noff.h
 bitmap.o: ../userprog/bitmap.cc ../threads/copyright.h \
  ../userprog/bitmap.h ../threads/utility.h ../threads/copyright.h \
  ../threads/bool.h ../machine/sysdep.h /usr/include/stdio.h \
@@ -293,9 +339,13 @@ exception.o: ../userprog/exception.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../threads/thread.h ../machine/machine.h \
  ../threads/utility.h ../machine/translate.h ../machine/disk.h \
  ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
+ ../userprog/pcb.h ../userprog/bitmap.h ../filesys/openfile.h \
+ ../userprog/useropenfile.h ../userprog/MemoryManager.h \
  ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
  ../threads/list.h ../machine/stats.h ../machine/timer.h \
- ../userprog/syscall.h
+ ../threads/synch.h ../userprog/ProcessManager.h ../threads/synch.h \
+ ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
+ ../userprog/sysopenfile.h ../userprog/syscall.h
 progtest.o: ../userprog/progtest.cc ../threads/copyright.h \
  ../threads/system.h ../threads/copyright.h ../threads/utility.h \
  ../threads/bool.h ../machine/sysdep.h /usr/include/stdio.h \
@@ -310,9 +360,13 @@ progtest.o: ../userprog/progtest.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../threads/thread.h ../machine/machine.h \
  ../threads/utility.h ../machine/translate.h ../machine/disk.h \
  ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
+ ../userprog/pcb.h ../userprog/bitmap.h ../filesys/openfile.h \
+ ../userprog/useropenfile.h ../userprog/MemoryManager.h \
  ../threads/scheduler.h ../threads/list.h ../machine/interrupt.h \
  ../threads/list.h ../machine/stats.h ../machine/timer.h \
- ../machine/console.h ../userprog/addrspace.h ../threads/synch.h
+ ../threads/synch.h ../userprog/ProcessManager.h ../threads/synch.h \
+ ../userprog/MemoryManager.h ../userprog/sysopenfilemanager.h \
+ ../userprog/sysopenfile.h ../machine/console.h ../userprog/addrspace.h
 console.o: ../machine/console.cc ../threads/copyright.h \
  ../machine/console.h ../threads/utility.h ../threads/copyright.h \
  ../threads/bool.h ../machine/sysdep.h /usr/include/stdio.h \
@@ -327,9 +381,13 @@ console.o: ../machine/console.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../threads/system.h ../threads/utility.h \
  ../threads/thread.h ../machine/machine.h ../machine/translate.h \
  ../machine/disk.h ../userprog/addrspace.h ../filesys/filesys.h \
- ../filesys/openfile.h ../threads/scheduler.h ../threads/list.h \
+ ../filesys/openfile.h ../userprog/pcb.h ../userprog/bitmap.h \
+ ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h ../threads/scheduler.h ../threads/list.h \
  ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
- ../machine/timer.h
+ ../machine/timer.h ../threads/synch.h ../userprog/ProcessManager.h \
+ ../threads/synch.h ../userprog/MemoryManager.h \
+ ../userprog/sysopenfilemanager.h ../userprog/sysopenfile.h
 machine.o: ../machine/machine.cc ../threads/copyright.h \
  ../machine/machine.h ../threads/utility.h ../threads/copyright.h \
  ../threads/bool.h ../machine/sysdep.h /usr/include/stdio.h \
@@ -344,9 +402,13 @@ machine.o: ../machine/machine.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../machine/translate.h ../machine/disk.h \
  ../threads/system.h ../threads/utility.h ../threads/thread.h \
  ../machine/machine.h ../userprog/addrspace.h ../filesys/filesys.h \
- ../filesys/openfile.h ../threads/scheduler.h ../threads/list.h \
+ ../filesys/openfile.h ../userprog/pcb.h ../userprog/bitmap.h \
+ ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h ../threads/scheduler.h ../threads/list.h \
  ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
- ../machine/timer.h
+ ../machine/timer.h ../threads/synch.h ../userprog/ProcessManager.h \
+ ../threads/synch.h ../userprog/MemoryManager.h \
+ ../userprog/sysopenfilemanager.h ../userprog/sysopenfile.h
 mipssim.o: ../machine/mipssim.cc ../threads/copyright.h \
  ../machine/machine.h ../threads/utility.h ../threads/copyright.h \
  ../threads/bool.h ../machine/sysdep.h /usr/include/stdio.h \
@@ -361,9 +423,13 @@ mipssim.o: ../machine/mipssim.cc ../threads/copyright.h \
  /usr/include/xlocale.h ../machine/translate.h ../machine/disk.h \
  ../machine/mipssim.h ../threads/system.h ../threads/utility.h \
  ../threads/thread.h ../machine/machine.h ../userprog/addrspace.h \
- ../filesys/filesys.h ../filesys/openfile.h ../threads/scheduler.h \
- ../threads/list.h ../machine/interrupt.h ../threads/list.h \
- ../machine/stats.h ../machine/timer.h
+ ../filesys/filesys.h ../filesys/openfile.h ../userprog/pcb.h \
+ ../userprog/bitmap.h ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../userprog/MemoryManager.h ../threads/scheduler.h ../threads/list.h \
+ ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
+ ../machine/timer.h ../threads/synch.h ../userprog/ProcessManager.h \
+ ../threads/synch.h ../userprog/MemoryManager.h \
+ ../userprog/sysopenfilemanager.h ../userprog/sysopenfile.h
 translate.o: ../machine/translate.cc ../threads/copyright.h \
  ../machine/machine.h ../threads/utility.h ../threads/copyright.h \
  ../threads/bool.h ../machine/sysdep.h /usr/include/stdio.h \
@@ -377,10 +443,86 @@ translate.o: ../machine/translate.cc ../threads/copyright.h \
  /usr/include/bits/sys_errlist.h /usr/include/string.h \
  /usr/include/xlocale.h ../machine/translate.h ../machine/disk.h \
  ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
+ ../userprog/pcb.h ../userprog/bitmap.h ../filesys/openfile.h \
+ ../userprog/useropenfile.h ../userprog/MemoryManager.h \
  ../threads/system.h ../threads/utility.h ../threads/thread.h \
  ../machine/machine.h ../threads/scheduler.h ../threads/list.h \
  ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
- ../machine/timer.h
+ ../machine/timer.h ../threads/synch.h ../userprog/ProcessManager.h \
+ ../threads/synch.h ../userprog/MemoryManager.h \
+ ../userprog/sysopenfilemanager.h ../userprog/sysopenfile.h
+MemoryManager.o: ../userprog/MemoryManager.cc ../userprog/MemoryManager.h \
+ ../userprog/bitmap.h ../threads/copyright.h ../threads/utility.h \
+ ../threads/copyright.h ../threads/bool.h ../machine/sysdep.h \
+ /usr/include/stdio.h /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-32.h \
+ /usr/lib/gcc/i686-redhat-linux/4.6.3/include/stddef.h \
+ /usr/include/bits/types.h /usr/include/bits/typesizes.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
+ ../threads/stdarg.h /usr/include/bits/stdio_lim.h \
+ /usr/include/bits/sys_errlist.h /usr/include/string.h \
+ /usr/include/xlocale.h ../filesys/openfile.h ../machine/machine.h \
+ ../machine/translate.h ../machine/disk.h
+ProcessManager.o: ../userprog/ProcessManager.cc \
+ ../userprog/ProcessManager.h ../userprog/pcb.h ../userprog/bitmap.h \
+ ../threads/copyright.h ../threads/utility.h ../threads/copyright.h \
+ ../threads/bool.h ../machine/sysdep.h /usr/include/stdio.h \
+ /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-32.h \
+ /usr/lib/gcc/i686-redhat-linux/4.6.3/include/stddef.h \
+ /usr/include/bits/types.h /usr/include/bits/typesizes.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
+ ../threads/stdarg.h /usr/include/bits/stdio_lim.h \
+ /usr/include/bits/sys_errlist.h /usr/include/string.h \
+ /usr/include/xlocale.h ../filesys/openfile.h ../userprog/useropenfile.h \
+ ../threads/synch.h ../threads/thread.h ../threads/utility.h \
+ ../machine/machine.h ../machine/translate.h ../machine/disk.h \
+ ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
+ ../userprog/MemoryManager.h ../threads/list.h ../threads/system.h \
+ ../threads/scheduler.h ../machine/interrupt.h ../threads/list.h \
+ ../machine/stats.h ../machine/timer.h ../threads/synch.h \
+ ../userprog/ProcessManager.h ../userprog/MemoryManager.h \
+ ../userprog/sysopenfilemanager.h ../userprog/sysopenfile.h
+pcb.o: ../userprog/pcb.cc ../userprog/pcb.h ../userprog/bitmap.h \
+ ../threads/copyright.h ../threads/utility.h ../threads/copyright.h \
+ ../threads/bool.h ../machine/sysdep.h /usr/include/stdio.h \
+ /usr/include/features.h /usr/include/sys/cdefs.h \
+ /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h \
+ /usr/include/gnu/stubs-32.h \
+ /usr/lib/gcc/i686-redhat-linux/4.6.3/include/stddef.h \
+ /usr/include/bits/types.h /usr/include/bits/typesizes.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
+ ../threads/stdarg.h /usr/include/bits/stdio_lim.h \
+ /usr/include/bits/sys_errlist.h /usr/include/string.h \
+ /usr/include/xlocale.h ../filesys/openfile.h ../userprog/useropenfile.h
+sysopenfile.o: ../userprog/sysopenfile.cc ../userprog/sysopenfile.h \
+ ../filesys/filesys.h ../threads/copyright.h ../filesys/openfile.h \
+ ../threads/utility.h ../threads/copyright.h ../threads/bool.h \
+ ../machine/sysdep.h /usr/include/stdio.h /usr/include/features.h \
+ /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h \
+ /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h \
+ /usr/lib/gcc/i686-redhat-linux/4.6.3/include/stddef.h \
+ /usr/include/bits/types.h /usr/include/bits/typesizes.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
+ ../threads/stdarg.h /usr/include/bits/stdio_lim.h \
+ /usr/include/bits/sys_errlist.h /usr/include/string.h \
+ /usr/include/xlocale.h
+sysopenfilemanager.o: ../userprog/sysopenfilemanager.cc \
+ ../userprog/sysopenfilemanager.h ../userprog/sysopenfile.h \
+ ../filesys/filesys.h ../threads/copyright.h ../filesys/openfile.h \
+ ../threads/utility.h ../threads/copyright.h ../threads/bool.h \
+ ../machine/sysdep.h /usr/include/stdio.h /usr/include/features.h \
+ /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h \
+ /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h \
+ /usr/lib/gcc/i686-redhat-linux/4.6.3/include/stddef.h \
+ /usr/include/bits/types.h /usr/include/bits/typesizes.h \
+ /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h \
+ ../threads/stdarg.h /usr/include/bits/stdio_lim.h \
+ /usr/include/bits/sys_errlist.h /usr/include/string.h \
+ /usr/include/xlocale.h ../userprog/bitmap.h ../filesys/openfile.h
+useropenfile.o: ../userprog/useropenfile.cc ../userprog/useropenfile.h
 # DEPENDENCIES MUST END AT END OF FILE
 # IF YOU PUT STUFF HERE IT WILL GO AWAY
 # see make depend above
