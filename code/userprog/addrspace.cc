@@ -98,8 +98,7 @@ AddrSpace::AddrSpace(OpenFile *executable, PCB* pcb)
         pageTable = new TranslationEntry[numPages];
         for (i = 0; i < numPages; i++) {
             pageTable[i].virtualPage = i;
-            pageTable[i].physicalPage = i;
-            //pageTable[i].physicalPage = memManager->getPage();
+            pageTable[i].physicalPage = memManager->getPage();
             pageTable[i].valid = TRUE;
             pageTable[i].use = FALSE;
             pageTable[i].dirty = FALSE;

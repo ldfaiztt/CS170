@@ -124,7 +124,7 @@ void Fork(void (*func)());
 /* Yield the CPU to another runnable thread, whether in this address space 
  * or not. 
  */
-void Yield();		
+void Yield();
 
 #endif /* IN_ASM */
 
