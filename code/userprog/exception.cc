@@ -43,7 +43,7 @@ int openImpl(char* filename);
 int userReadWrite(int virtAddr, char* buffer, int size, int type);
 void writeImpl(void);
 int readImpl(void);
-void closeImpl(void);
+void closeImpl(OpenFileId id);
 
 //----------------------------------------------------------------------
 // ExceptionHandler
@@ -77,6 +77,7 @@ void ExceptionHandler(ExceptionType which)
     int arg2 = 0;
     int arg3 = 0;
     char* filename = new char[MAX_FILENAME_LEN];
+    OpenFileId id;
 
     int type = machine->ReadRegister(2);
     PCB* pcb = (currentThread->space)->getPCB();
@@ -138,7 +139,7 @@ void ExceptionHandler(ExceptionType which)
                 break;
             case SC_Close:
                 printf("System Call: %d invoked Close\n", pcb->getPID());
-                closeImpl();
+                closeImpl(id);
                 break;
             default:
                 printf("System Call: %d invoked an unknown syscall!\n", 
@@ -232,7 +233,7 @@ void copyStateBack(int forkPC) {
 //----------------------------------------------------------------------
 
 void yieldImpl() {
-//code removed
+	currentThread->Yield();
 }
 
 //----------------------------------------------------------------------
@@ -481,9 +482,14 @@ int readImpl() {
 // Close file system call implementation.
 //----------------------------------------------------------------------
 
-void closeImpl() {
+void closeImpl(OpenFileId id) {
+	printf("Close!!!!!!!!!!!!!!! %d \n", id);
+	//char* filename = currentThread->space->getPCB()->getFile(id);
+	int index = 0;
+	//SysOpenFile* currSysFile = fileManager->getFile(filename, index);
 
-//code removed
+
+	//code removed
 //
 
 
@@ -494,6 +500,7 @@ void closeImpl() {
     } else {
         SysOpenFile* sysFile =
                 fileManager->getFile(userFile->indexInSysOpenFileList);
+        printf("File is opened by %d processes \n", sysFile->numProcessesAccessing);
         sysFile->closedBySingleProcess();
         currentThread->space->getPCB()->removeFile(fileID);
     }
