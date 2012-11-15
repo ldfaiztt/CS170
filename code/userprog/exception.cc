@@ -133,7 +133,7 @@ void ExceptionHandler(ExceptionType which)
                 writeImpl();
                 break;
             case SC_Read:
-                printf("System Call: %d invoked Read\n", pcb->getPID());
+                printf("System Call: %d invoked Read result = %d \n", pcb->getPID(), result);
                 result = readImpl();
                 machine->WriteRegister(2, result);
                 break;
@@ -445,6 +445,11 @@ void writeImpl() {
     int writeAddr = machine->ReadRegister(4);
     int size = machine->ReadRegister(5);
     int fileID = machine->ReadRegister(6);
+//    printf("R2: %d \n", machine->ReadRegister(2));
+//    printf("R4: %d \n", machine->ReadRegister(4));
+//    printf("R5: %d \n", machine->ReadRegister(5));
+//    printf("R6: %d \n", machine->ReadRegister(6));
+//    printf("R7: %d \n", machine->ReadRegister(7));
 
     char* buffer = new char[size + 1];
     if (fileID == ConsoleOutput) {
@@ -475,7 +480,41 @@ void writeImpl() {
 
 int readImpl() {
 
-// code is removed
+	int readAddr = machine->ReadRegister(4);
+	int size = machine->ReadRegister(5);
+	int fileID = machine->ReadRegister(6);
+	int numBytesRead = 0;
+	char* buffer = new char[size + 1];
+	printf("R2: %d \n", machine->ReadRegister(2));
+	printf("R4: %d \n", readAddr);
+	printf("R5: %d \n", size);
+	printf("R6: %d \n", fileID);
+	printf("R7: %d \n", machine->ReadRegister(7));
+
+	if (fileID == ConsoleInput) {
+		printf("ConsoleInput");
+		numBytesRead = userReadWrite(readAddr, buffer, size, USER_READ);
+		buffer[size] = 0; // always terminate
+		printf("%s", buffer);
+	}
+	else {
+		buffer = new char[size];
+		UserOpenFile* userFile = currentThread->space->getPCB()->getFile(fileID);
+		if (userFile == NULL) {
+			printf("Failed");
+			return -1;
+		} else {
+			SysOpenFile* sysFile =
+					fileManager->getFile(userFile->indexInSysOpenFileList);
+			int numBytesRead =
+					sysFile->file->ReadAt(buffer, size, userFile->currOffsetInFile);
+			userFile->currOffsetInFile += numBytesRead;
+			numBytesRead = userReadWrite(readAddr, buffer, size, USER_READ);
+		}
+
+	}
+	delete [] buffer;
+	return numBytesRead;
 }
 
 //----------------------------------------------------------------------
@@ -483,19 +522,12 @@ int readImpl() {
 //----------------------------------------------------------------------
 
 void closeImpl(OpenFileId id) {
-	printf("Close!!!!!!!!!!!!!!! %d \n", id);
-	//char* filename = currentThread->space->getPCB()->getFile(id);
-	int index = 0;
-	//SysOpenFile* currSysFile = fileManager->getFile(filename, index);
-
-
-	//code removed
-//
-
 
     int fileID = machine->ReadRegister(4);
+
     UserOpenFile* userFile = currentThread->space->getPCB()->getFile(fileID);
     if (userFile == NULL) {
+    	printf("Null");
         return;
     } else {
         SysOpenFile* sysFile =
