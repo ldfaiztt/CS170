@@ -283,8 +283,11 @@ int joinImpl() {
 //----------------------------------------------------------------------
 
 void execHelper(int uselessArg) {
+	currentThread->space->InitRegisters();
+	currentThread->space->RestoreState();
 
-// code removed
+	// Execute
+	machine->Run();
 }
 
 //----------------------------------------------------------------------
@@ -293,7 +296,57 @@ void execHelper(int uselessArg) {
 
 SpaceId execImpl(char* filename) {
 
-// code is removed
+	 // Create a new kernel thread
+	    Thread* newThread = new Thread("user level exec new process");
+
+	    int newProcessPC = machine->ReadRegister(4);
+
+	    // Construct new PCB
+	    int currPID = currentThread->space->getPCB()->getPID();
+	    int newPID = processManager->getPID();
+
+	    if (newPID == -1) {
+	        printf("Process %d is unable to fork a new process\n", currPID);
+	        return -1;
+	    }
+	    OpenFile *executable = fileSystem->Open(filename);
+
+	    if(executable == NULL){
+	    	printf("Unable to open executable");
+	    	return -1;
+	    }
+
+	    PCB* newPCB = new PCB(newPID, currPID);
+	    newPCB->status = P_RUNNING;
+	    newPCB->process = newThread;
+	    processManager->addProcess(newPCB, newPID);
+
+	    // Make a copy of the address space, save registers
+	    newThread->space = new AddrSpace(executable, newPCB);
+	    int childNumPages = newThread->space->getNumPages();
+
+	    if (newThread->space->pageTable == NULL) {
+	        printf("Process %d called Exec and failed: %s\n", currPID, filename);
+	        delete executable;
+	        return -1;
+	    }
+
+	    delete executable;
+
+	    newThread->space->SaveState();
+	    newThread->SaveUserState();
+
+	    // Mandatory printout of the forked process
+	    //PCB* parentPCB = currentThread->space->getPCB();
+	    //PCB* childPCB = newThread->space->getPCB();
+
+	    newThread->Fork(execHelper,0);
+	    printf("Exec Program: %d loading %s\n", currPID, filename);
+
+	    // Set up the function that new process will run and yield
+
+	    //currentThread->Yield();
+	    return newPID;
 }
 
 //----------------------------------------------------------------------
@@ -485,20 +538,26 @@ int readImpl() {
 	int fileID = machine->ReadRegister(6);
 	int numBytesRead = 0;
 	char* buffer = new char[size + 1];
-	printf("R2: %d \n", machine->ReadRegister(2));
-	printf("R4: %d \n", readAddr);
-	printf("R5: %d \n", size);
-	printf("R6: %d \n", fileID);
-	printf("R7: %d \n", machine->ReadRegister(7));
+//	printf("R2: %d \n", machine->ReadRegister(2));
+//	printf("R4: %d \n", readAddr);
+//	printf("R5: %d \n", size);
+//	printf("R6: %d \n", fileID);
+//	printf("R7: %d \n", machine->ReadRegister(7));
 
-	if (fileID == ConsoleInput) {
-		printf("ConsoleInput");
+	if (fileID == ConsoleInput) { //reading from console
+		int i = 0;
+		char c = 'a';
+		while(c != '\0' && c != '\n' && i < size){
+			buffer[i] = getchar();
+			c = buffer[i];
+			i++;
+		}
+		//printf("ConsoleInput");
 		numBytesRead = userReadWrite(readAddr, buffer, size, USER_READ);
-		buffer[size] = 0; // always terminate
-		printf("%s", buffer);
+		//printf("%s", buffer);
 	}
 	else {
-		buffer = new char[size];
+		userReadWrite(readAddr, buffer, size, USER_READ);
 		UserOpenFile* userFile = currentThread->space->getPCB()->getFile(fileID);
 		if (userFile == NULL) {
 			printf("Failed");
@@ -509,7 +568,7 @@ int readImpl() {
 			int numBytesRead =
 					sysFile->file->ReadAt(buffer, size, userFile->currOffsetInFile);
 			userFile->currOffsetInFile += numBytesRead;
-			numBytesRead = userReadWrite(readAddr, buffer, size, USER_READ);
+
 		}
 
 	}
