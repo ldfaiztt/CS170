@@ -1,0 +1,14 @@
+make  clean
+
+make "DEFINES = -DTHREADS -DHW1_SEMAPHORES" 
+threads/nachos > threads/HW1_Task1
+make clean
+
+make "DEFINES = -DTHREADS -DHW1_LAUNDRY_LC"
+threads/nachos > threads/HW1_Task3
+
+
+cd hw1_task1_pthreads
+make 
+../hw1_task1_pthreads/run > ../threads/HW1_Task4
+make clean

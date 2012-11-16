@@ -1,0 +1,21 @@
+Group members:
+- Thor Audun Steen; steen@umail.ucsb.edu
+- Jon Arne Pedersen; jonna90@gmail.com, jonarnp@umail.ucsb.edu
+
+# Important
+- All our implementations is working correctly. 
+
+# Available office hours
+- We are able to meet at any of the given office hours. 
+
+# Summary of design and code
+- We used the given sample code.
+- We implmented the missing system calls according to the problem description.  
+ 
+# Modified / Created files
+- addrspace.cc: fixed bug. 
+- exception.cc: implemented all necessary system calls. 
+- task 1 is in code/hw2_linuxshell/
+
+# Explanation of functionality
+- All system calls were implemented according to problem description.

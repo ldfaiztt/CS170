@@ -1,0 +1,46 @@
+Station 1 assigned machine 0 (9 machines left)
+Station 1 assigned machine 1 (8 machines left)
+Station 1 assigned machine 2 (7 machines left)
+Station 2 assigned machine 3 (6 machines left)
+Station 2 assigned machine 4 (5 machines left)
+Station 1 assigned machine 5 (4 machines left)
+Station 1 assigned machine 6 (3 machines left)
+Station 1 assigned machine 7 (2 machines left)
+Station 1 assigned machine 8 (1 machines left)
+Station 2 assigned machine 9 (0 machines left)
+Station 1 released machine 0 (1 machines left)
+Station 1 released machine 1 (2 machines left)
+Station 1 released machine 2 (3 machines left)
+Station 2 assigned machine 0 (2 machines left)
+Station 2 assigned machine 1 (1 machines left)
+Station 2 assigned machine 2 (0 machines left)
+Station 1 released machine 5 (1 machines left)
+Station 1 released machine 6 (2 machines left)
+Station 1 released machine 7 (3 machines left)
+Station 1 released machine 8 (4 machines left)
+Station 1 is done!
+Station 2 released machine 3 (5 machines left)
+Station 2 released machine 4 (6 machines left)
+Station 2 released machine 9 (7 machines left)
+Station 2 released machine 0 (8 machines left)
+Station 2 released machine 1 (9 machines left)
+Station 2 released machine 2 (10 machines left)
+Station 2 is done!
+Station 3 assigned machine 0 (9 machines left)
+Station 3 assigned machine 1 (8 machines left)
+Station 3 assigned machine 2 (7 machines left)
+Station 3 released machine 0 (8 machines left)
+Station 3 released machine 1 (9 machines left)
+Station 3 released machine 2 (10 machines left)
+Station 3 is done!
+No threads ready or runnable, and no pending interrupts.
+Assuming the program completed.
+Machine halting!
+
+Ticks: total 960, idle 0, system 960, user 0
+Disk I/O: reads 0, writes 0
+Console I/O: reads 0, writes 0
+Paging: faults 0
+Network I/O: packets received 0, sent 0
+
+Cleaning up...
