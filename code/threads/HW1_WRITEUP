@@ -1,16 +1,57 @@
-Arne Dahl Bjune 	arnedab@umail.ucsb.edu
-Hanne Riise Maehlum 	hannerii@umail.ucsb.edu
+Group members:
+- Thor Audun Steen; steen@umail.ucsb.edu
+- Jon Arne Pedersen; jonna90@gmail.com, jonarnp@umail.ucsb.edu
 
-1.1
-What happens is that each thread reads the same value, and then increases the value with one. Since all the threads read the same value they also writes the same value. In other words thread 0 first reads the value 0, then thread 1 reads the value 0 and so on until thread n has read the value 0. Then thread 0 increases the value with one so that the value is 1. Thread 1 to n also increases the value they saw with one and overwrites the value so that it still is 1.
+# Important
+	To test and print traces, use ./testscript from code/ folder.
+	Trace files will be found in threads/ as required by the 
+	description. 
 
+# Available office hours
+	Both Monday and Wednesday 3:30 - 4:30 works. If that's no good,
+	we might be able to do Tuesday  and Thursday as well.
 
-Code changes:
-synch.c
-Implemented Conditions and Locks
+# Summary of design and code
+	All functions and tasks has been implemented according to the problem 
+	description. The few exceptions are commented below. Everything has 
+	been completed.	
 
-synch.h
-added a few variables
+	* Task 4
+	Functionality is the same as the synchronized version of task 1. 
+	Used condition variable this time. Also implemented pthread barrier, 
+	but the type were not recognized. Not sure why.
+ 
+# Modified / Created files
+	threads/testscript
+	threads/main.cc
+	threads/threadtest.cc
+	threads/synch.cc
+	threads/synch.h
+	hw1_task1_pthreads/pthreadtest.cc
+	hw1_task1_pthreads/pthreadtest.h
+	hw1_task1_pthreads/Makefile
 
-threadtest.c
-added semaphores and barrier to simpleThread
+# Explanation of functionality
+    * Task 1.1
+	All of the threads sees 5 as the final value. With proper 
+	synchronization it should be (n+1)*5. This is the explanation: 
+	Each thread stores the initial SharedVariable of 0 into its 
+	local val before it releases its access to the CPU. The next time 
+	they get control, they will overwrite the SharedVariable with their
+	local val+1 before they release the CPU again. The critical section
+	needs to be atomic in order for this code segment to work as intended.
+
+    * Task 1.2
+ 	Solution with busy waiting. Could also used condition variable. 
+	Busy waiting is okay for short critical sections. 	
+	
+	* Task 3
+	Did not use the allocate and release code as suggested in the problem 
+	description. I coded them so they would behave as expected from the 
+	laundromatTest() in the sample code.
+
+# Changes from sample code
+	* Task 2
+	Didn't use sample code for lock implementation. Still got the same
+	functionality. Used the sample code for condition variable 
+	and just filled in the missing code parts. 

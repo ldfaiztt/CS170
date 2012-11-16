@@ -62,7 +62,7 @@ SwapHeader (NoffHeader *noffH)
 //----------------------------------------------------------------------
 
 AddrSpace::AddrSpace(OpenFile *executable, PCB* pcb)
-//there is a bug in this code
+//there was some bug in this code
 {
     NoffHeader noffH;
     unsigned int i, size;
@@ -98,7 +98,7 @@ AddrSpace::AddrSpace(OpenFile *executable, PCB* pcb)
         pageTable = new TranslationEntry[numPages];
         for (i = 0; i < numPages; i++) {
             pageTable[i].virtualPage = i;
-            pageTable[i].physicalPage = memManager->getPage();
+            pageTable[i].physicalPage = memManager->getPage(); //could be 'i' instead of memManager->getPage()
             pageTable[i].valid = TRUE;
             pageTable[i].use = FALSE;
             pageTable[i].dirty = FALSE;
@@ -137,6 +137,7 @@ AddrSpace::AddrSpace(OpenFile *executable, PCB* pcb)
         memManagerLock->Release();
         pageTable = NULL;
         pcb = new PCB(-1,-1);
+        printf("Not enough free pages to acquire\n");
     }
 }
 
@@ -248,7 +249,8 @@ AddrSpace::InitRegisters()
 //----------------------------------------------------------------------
 
 void AddrSpace::SaveState() 
-{}
+{
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
@@ -280,7 +282,7 @@ int AddrSpace::Translate(int virtualAddress) {
     int physicalAddress = 0;
 
     if (virtualAddress < 0 || pageTableIndex > numPages) {
-        physicalAddress = -1;
+        physicalAddress = -1;//error
     } else {
         physicalAddress = 
             pageTable[pageTableIndex].physicalPage * PageSize + offset;
