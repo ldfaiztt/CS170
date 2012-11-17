@@ -70,89 +70,93 @@ void closeImpl(OpenFileId id);
 
 void ExceptionHandler(ExceptionType which)
 {
-    int newProcessPID = 0;
-    int otherProcessStatus = 0;
-    int result = 0;
-    int arg1 = 0;
-    int arg2 = 0;
-    int arg3 = 0;
-    char* filename = new char[MAX_FILENAME_LEN];
-    OpenFileId id;
+	int newProcessPID = 0;
+	int otherProcessStatus = 0;
+	int result = 0;
+	int arg1 = 0;
+	int arg2 = 0;
+	int arg3 = 0;
+	char* filename = new char[MAX_FILENAME_LEN];
+	OpenFileId id;
 
-    int type = machine->ReadRegister(2);
-    PCB* pcb = (currentThread->space)->getPCB();
+	int type = machine->ReadRegister(2);
+	PCB* pcb = (currentThread->space)->getPCB();
 
-    if (which == SyscallException) {
+	if (which == SyscallException) {
 
-        switch (type) { /* Find out what type of syscall we're dealing with */
+		switch (type) { /* Find out what type of syscall we're dealing with */
 
-            case SC_Halt:
-                printf("System Call: %d invoked Halt\n", pcb->getPID());
-                interrupt->Halt();
-                break;
-            case SC_Fork:
-                printf("System Call: %d invoked Fork\n", pcb->getPID());
-                newProcessPID = forkImpl();
-                machineLock->Acquire();
-                machine->WriteRegister(2, newProcessPID);
-                machineLock->Release();
-                break;
-            case SC_Yield:
-                printf("System Call: %d invoked Yield\n", pcb->getPID());
-                yieldImpl();
-                break;
-            case SC_Exec:
-                printf("System Call: %d invoked Exec\n", pcb->getPID());
-                //code removed
-                break;
-            case SC_Join:
-                printf("System Call: %d invoked Join\n", pcb->getPID());
-                otherProcessStatus = joinImpl();
-                machineLock->Acquire();
-                machine->WriteRegister(2, otherProcessStatus);
-                machineLock->Release();
-                break;
-            case SC_Exit:
-                printf("System Call: %d invoked Exit\n", pcb->getPID());
-                exitImpl();
-                break;
-            case SC_Create:
-                printf("System Call: %d invoked Create\n", pcb->getPID());
-                readFilenameFromUsertoKernel(filename);
-                createImpl(filename);
-                break;
-            case SC_Open:
-                printf("System Call: [%d] invoked Open\n", pcb->getPID());
-                readFilenameFromUsertoKernel(filename);
-                copyString(filename); // copy bytes to a fresh piece of memory
-                result = openImpl(filename); 
-                machine->WriteRegister(2, result);
-                break;
-            case SC_Write:
-                printf("System Call: %d invoked Write\n", pcb->getPID());
-                writeImpl();
-                break;
-            case SC_Read:
-                printf("System Call: %d invoked Read result = %d \n", pcb->getPID(), result);
-                result = readImpl();
-                machine->WriteRegister(2, result);
-                break;
-            case SC_Close:
-                printf("System Call: %d invoked Close\n", pcb->getPID());
-                closeImpl(id);
-                break;
-            default:
-                printf("System Call: %d invoked an unknown syscall!\n", 
-                    pcb->getPID());
-                ASSERT(FALSE);
-        }
-        
-        IncrementPC();
+		case SC_Halt:
+			printf("System Call: %d invoked Halt\n", pcb->getPID());
+			interrupt->Halt();
+			break;
+		case SC_Fork:
+			printf("System Call: %d invoked Fork\n", pcb->getPID());
+			newProcessPID = forkImpl();
+			machineLock->Acquire();
+			machine->WriteRegister(2, newProcessPID);
+			machineLock->Release();
+			break;
+		case SC_Yield:
+			printf("System Call: %d invoked Yield\n", pcb->getPID());
+			yieldImpl();
+			break;
+		case SC_Exec:
+			printf("System Call: %d invoked Exec\n", pcb->getPID());
+			//code removed
+			break;
+		case SC_Join:
+			printf("System Call: %d invoked Join\n", pcb->getPID());
+			otherProcessStatus = joinImpl();
+			machineLock->Acquire();
+			machine->WriteRegister(2, otherProcessStatus);
+			machineLock->Release();
+			break;
+		case SC_Exit:
+			printf("System Call: %d invoked Exit\n", pcb->getPID());
+			exitImpl();
+			break;
+		case SC_Create:
+			printf("System Call: %d invoked Create\n", pcb->getPID());
+			readFilenameFromUsertoKernel(filename);
+			createImpl(filename);
+			break;
+		case SC_Open:
+			printf("System Call: %d invoked Open\n", pcb->getPID());
+			readFilenameFromUsertoKernel(filename);
+			copyString(filename); // copy bytes to a fresh piece of memory
+			result = openImpl(filename);
+			machineLock->Acquire();
+			machine->WriteRegister(2, result);
+			machineLock->Release();
+			break;
+		case SC_Write:
+			printf("System Call: %d invoked Write\n", pcb->getPID());
+			writeImpl();
+			break;
+		case SC_Read:
+			printf("System Call: %d invoked Read result = %d \n", pcb->getPID(), result);
+			result = readImpl();
+			machineLock->Acquire();
+			machine->WriteRegister(2, result);
+			machineLock->Release();
+			break;
+		case SC_Close:
+			printf("System Call: %d invoked Close\n", pcb->getPID());
+			closeImpl(id);
+			break;
+		default:
+			printf("System Call: %d invoked an unknown syscall!\n",
+					pcb->getPID());
+			ASSERT(FALSE);
+		}
 
-    } else {
-        printf("Unexpected user mode exception %d %d\n", which, type);
-        ASSERT(FALSE);
-    }
+		IncrementPC();
+
+	} else {
+		printf("Unexpected user mode exception %d %d\n", which, type);
+		ASSERT(FALSE);
+	}
 }
 
 //----------------------------------------------------------------------
@@ -161,46 +165,46 @@ void ExceptionHandler(ExceptionType which)
 
 int forkImpl() {
 
-    // Create a new kernel thread
-    Thread* childThread = new Thread("user-level child process");
+	// Create a new kernel thread
+	Thread* childThread = new Thread("user-level child process");
 
-    int newProcessPC = machine->ReadRegister(4);
+	int newProcessPC = machine->ReadRegister(4);
 
-    // Construct new PCB
-    int currPID = currentThread->space->getPCB()->getPID();
-    int newPID = processManager->getPID();
-    if (newPID == -1) {
-        printf("Process %d is unable to fork a new process\n", currPID);
-        return -1;
-    }
-    PCB* newPCB = new PCB(newPID, currPID);
-    newPCB->status = P_RUNNING;
-    newPCB->process = childThread;
-    processManager->addProcess(newPCB, newPID);
+	// Construct new PCB
+	int currPID = currentThread->space->getPCB()->getPID();
+	int newPID = processManager->getPID();
+	if (newPID == -1) {
+		printf("Process %d is unable to fork a new process\n", currPID);
+		return -1;
+	}
+	PCB* newPCB = new PCB(newPID, currPID);
+	newPCB->status = P_RUNNING;
+	newPCB->process = childThread;
+	processManager->addProcess(newPCB, newPID);
 
-    // Make a copy of the address space, save registers
-    childThread->space = new AddrSpace(currentThread->space, newPCB);
-    int childNumPages = childThread->space->getNumPages();
+	// Make a copy of the address space, save registers
+	childThread->space = new AddrSpace(currentThread->space, newPCB);
+	int childNumPages = childThread->space->getNumPages();
 
-    if (childThread->space->pageTable == NULL) {
-        printf("Process %d Fork: start at address 0x%x with %d pages"
-               " memory failed\n", currPID, newProcessPC, childNumPages);
-        return -1;
-    }
+	if (childThread->space->pageTable == NULL) {
+		printf("Process %d Fork: start at address 0x%x with %d pages"
+				" memory failed\n", currPID, newProcessPC, childNumPages);
+		return -1;
+	}
 
-    childThread->space->SaveState();
-    childThread->SaveUserState();
+	childThread->space->SaveState();
+	childThread->SaveUserState();
 
-    // Mandatory printout of the forked process
-    PCB* parentPCB = currentThread->space->getPCB();
-    PCB* childPCB = childThread->space->getPCB();
-    printf("Process %d Fork: start at address 0x%x with %d pages memory\n",
-        currPID, newProcessPC, childNumPages);
-    
-    // Set up the function that new process will run and yield
-    childThread->Fork(copyStateBack, newProcessPC);
-    currentThread->Yield(); 
-    return newPID;
+	// Mandatory printout of the forked process
+	PCB* parentPCB = currentThread->space->getPCB();
+	PCB* childPCB = childThread->space->getPCB();
+	printf("Process %d Fork: start at address 0x%x with %d pages memory\n",
+			currPID, newProcessPC, childNumPages);
+
+	// Set up the function that new process will run and yield
+	childThread->Fork(copyStateBack, newProcessPC);
+	currentThread->Yield();
+	return newPID;
 }
 
 //----------------------------------------------------------------------
@@ -213,19 +217,19 @@ int forkImpl() {
 
 void copyStateBack(int forkPC) {
 
-    // Get fresh registers, but use copy of addr space
-    currentThread->RestoreUserState();
+	// Get fresh registers, but use copy of addr space
+	currentThread->RestoreUserState();
 
-    // Set the PC and run
-    machineLock->Acquire();
-    machine->WriteRegister(PCReg, forkPC);
-    machine->WriteRegister(PrevPCReg, forkPC - 4);
-    machine->WriteRegister(NextPCReg, forkPC + 4);
-    machineLock->Release();
+	// Set the PC and run
+	machineLock->Acquire();
+	machine->WriteRegister(PCReg, forkPC);
+	machine->WriteRegister(PrevPCReg, forkPC - 4);
+	machine->WriteRegister(NextPCReg, forkPC + 4);
+	machineLock->Release();
 
-    currentThread->space->RestoreState();
-    machine->Run();
-    ASSERT(FALSE); // should never reach here
+	currentThread->space->RestoreState();
+	machine->Run();
+	ASSERT(FALSE); // should never reach here
 }
 
 //----------------------------------------------------------------------
@@ -242,20 +246,20 @@ void yieldImpl() {
 
 void exitImpl() {
 
-   IntStatus oldLevel = interrupt->SetLevel(IntOff);
-    int status = machine->ReadRegister(4);
-    int currPID = currentThread->space->getPCB()->getPID();
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	int status = machine->ReadRegister(4);
+	int currPID = currentThread->space->getPCB()->getPID();
 
-    printf("Process %d exits with %d\n", currPID, status);
-    currentThread->space->getPCB()->status = status;
-    processManager->broadcast(currPID);
+	printf("Process %d exits with %d\n", currPID, status);
+	currentThread->space->getPCB()->status = status;
+	processManager->broadcast(currPID);
 
-    delete currentThread->space;
-    currentThread->space = NULL;
-    processManager->clearPID(currPID);
+	delete currentThread->space;
+	currentThread->space = NULL;
+	processManager->clearPID(currPID);
 
-    (void) interrupt->SetLevel(oldLevel);
-    currentThread->Finish();
+	(void) interrupt->SetLevel(oldLevel);
+	currentThread->Finish();
 
 
 }
@@ -266,16 +270,16 @@ void exitImpl() {
 
 int joinImpl() {
 
-    int otherPID = machine->ReadRegister(4);
-    currentThread->space->getPCB()->status = P_BLOCKED;
-    int otherProcessStatus = processManager->getStatus(otherPID);
-    
-    if (otherProcessStatus < 0) {
-        return processManager->getStatus(otherPID);
-    }
-    processManager->join(otherPID);
-    currentThread->space->getPCB()->status = P_RUNNING;
-    return processManager->getStatus(otherPID);
+	int otherPID = machine->ReadRegister(4);
+	currentThread->space->getPCB()->status = P_BLOCKED;
+	int otherProcessStatus = processManager->getStatus(otherPID);
+
+	if (otherProcessStatus < 0) {
+		return processManager->getStatus(otherPID);
+	}
+	processManager->join(otherPID);
+	currentThread->space->getPCB()->status = P_RUNNING;
+	return processManager->getStatus(otherPID);
 }
 
 //----------------------------------------------------------------------
@@ -296,57 +300,57 @@ void execHelper(int uselessArg) {
 
 SpaceId execImpl(char* filename) {
 
-	 // Create a new kernel thread
-	    Thread* newThread = new Thread("user level exec new process");
+	// Create a new kernel thread
+	Thread* newThread = new Thread("user level exec new process");
 
-	    int newProcessPC = machine->ReadRegister(4);
+	int newProcessPC = machine->ReadRegister(4);
 
-	    // Construct new PCB
-	    int currPID = currentThread->space->getPCB()->getPID();
-	    int newPID = processManager->getPID();
+	// Construct new PCB
+	int currPID = currentThread->space->getPCB()->getPID();
+	int newPID = processManager->getPID();
 
-	    if (newPID == -1) {
-	        printf("Process %d is unable to fork a new process\n", currPID);
-	        return -1;
-	    }
-	    OpenFile *executable = fileSystem->Open(filename);
+	if (newPID == -1) {
+		printf("Process %d is unable to fork a new process\n", currPID);
+		return -1;
+	}
+	OpenFile *executable = fileSystem->Open(filename);
 
-	    if(executable == NULL){
-	    	printf("Unable to open executable");
-	    	return -1;
-	    }
+	if(executable == NULL){
+		printf("Unable to open executable");
+		return -1;
+	}
 
-	    PCB* newPCB = new PCB(newPID, currPID);
-	    newPCB->status = P_RUNNING;
-	    newPCB->process = newThread;
-	    processManager->addProcess(newPCB, newPID);
+	PCB* newPCB = new PCB(newPID, currPID);
+	newPCB->status = P_RUNNING;
+	newPCB->process = newThread;
+	processManager->addProcess(newPCB, newPID);
 
-	    // Make a copy of the address space, save registers
-	    newThread->space = new AddrSpace(executable, newPCB);
-	    int childNumPages = newThread->space->getNumPages();
+	// Make a copy of the address space, save registers
+	newThread->space = new AddrSpace(executable, newPCB);
+	int childNumPages = newThread->space->getNumPages();
 
-	    if (newThread->space->pageTable == NULL) {
-	        printf("Process %d called Exec and failed: %s\n", currPID, filename);
-	        delete executable;
-	        return -1;
-	    }
+	if (newThread->space->pageTable == NULL) {
+		printf("Process %d called Exec and failed: %s\n", currPID, filename);
+		delete executable;
+		return -1;
+	}
 
-	    delete executable;
+	delete executable;
 
-	    newThread->space->SaveState();
-	    newThread->SaveUserState();
+	newThread->space->SaveState();
+	newThread->SaveUserState();
 
-	    // Mandatory printout of the forked process
-	    //PCB* parentPCB = currentThread->space->getPCB();
-	    //PCB* childPCB = newThread->space->getPCB();
+	// Mandatory printout of the forked process
+	//PCB* parentPCB = currentThread->space->getPCB();
+	//PCB* childPCB = newThread->space->getPCB();
 
-	    newThread->Fork(execHelper,0);
-	    printf("Exec Program: %d loading %s\n", currPID, filename);
+	newThread->Fork(execHelper,0);
+	printf("Exec Program: %d loading %s\n", currPID, filename);
 
-	    // Set up the function that new process will run and yield
+	// Set up the function that new process will run and yield
 
-	    //currentThread->Yield();
-	    return newPID;
+	//currentThread->Yield();
+	return newPID;
 }
 
 //----------------------------------------------------------------------
@@ -355,22 +359,22 @@ SpaceId execImpl(char* filename) {
 
 int moveBytesFromMemToKernel(int virtAddr, char* buffer, int size) {
 
-    int physAddr = 0;
-    int remainingFromPage = 0;
-    int bytesCopied = 0;
-    int bytesToCopy = 0;
-    
-    while (size > 0) {
-        physAddr = currentThread->space->Translate(virtAddr);
-        remainingFromPage = PageSize - physAddr % PageSize;
-        bytesToCopy = remainingFromPage < size ? remainingFromPage : size;
-        bcopy(machine->mainMemory + physAddr, buffer + bytesCopied, bytesToCopy);
-        size -= bytesToCopy;
-        bytesCopied += bytesToCopy;
-        virtAddr += bytesToCopy;
-    }
+	int physAddr = 0;
+	int remainingFromPage = 0;
+	int bytesCopied = 0;
+	int bytesToCopy = 0;
 
-    return bytesCopied;
+	while (size > 0) {
+		physAddr = currentThread->space->Translate(virtAddr);
+		remainingFromPage = PageSize - physAddr % PageSize;
+		bytesToCopy = remainingFromPage < size ? remainingFromPage : size;
+		bcopy(machine->mainMemory + physAddr, buffer + bytesCopied, bytesToCopy);
+		size -= bytesToCopy;
+		bytesCopied += bytesToCopy;
+		virtAddr += bytesToCopy;
+	}
+
+	return bytesCopied;
 }
 
 //----------------------------------------------------------------------
@@ -380,15 +384,15 @@ int moveBytesFromMemToKernel(int virtAddr, char* buffer, int size) {
 
 void readFilenameFromUsertoKernel(char* filename) {
 
-    int currPosition = 0;
-    int filenameArg = machine->ReadRegister(4);
+	int currPosition = 0;
+	int filenameArg = machine->ReadRegister(4);
 
-    do {
-        moveBytesFromMemToKernel(filenameArg, filename + currPosition, 1);
-        filenameArg++;
-    } while (filename[currPosition++] != 0);
+	do {
+		moveBytesFromMemToKernel(filenameArg, filename + currPosition, 1);
+		filenameArg++;
+	} while (filename[currPosition++] != 0);
 
-    filename[currPosition] = 0; // terminate C string
+	filename[currPosition] = 0; // terminate C string
 }
 
 //----------------------------------------------------------------------
@@ -396,8 +400,8 @@ void readFilenameFromUsertoKernel(char* filename) {
 //----------------------------------------------------------------------
 
 void createImpl(char* filename) {
-    bool successfulCreate = fileSystem->Create(filename, 0);
-    ASSERT(successfulCreate); // should never fail
+	bool successfulCreate = fileSystem->Create(filename, 0);
+	ASSERT(successfulCreate); // should never fail
 }
 
 //----------------------------------------------------------------------
@@ -406,14 +410,14 @@ void createImpl(char* filename) {
 //----------------------------------------------------------------------
 
 char* copyString(char* oldStr) {
-    char* newStr = new char[MAX_FILENAME_LEN];
-    for (int i = 0; i < MAX_FILENAME_LEN; i++) {
-        newStr[i] = oldStr[i];
-        if (oldStr[i] == NULL) {
-            break;
-        }
-    }
-    return newStr;
+	char* newStr = new char[MAX_FILENAME_LEN];
+	for (int i = 0; i < MAX_FILENAME_LEN; i++) {
+		newStr[i] = oldStr[i];
+		if (oldStr[i] == NULL) {
+			break;
+		}
+	}
+	return newStr;
 }
 
 //----------------------------------------------------------------------
@@ -421,32 +425,32 @@ char* copyString(char* oldStr) {
 //----------------------------------------------------------------------
 
 int openImpl(char* filename) {
-    
-    int index = 0;
-    SysOpenFile* currSysFile = fileManager->getFile(filename, index);
 
-    if (currSysFile == NULL) { // if no process currently has it open
-        OpenFile* openFile = fileSystem->Open(filename);
-        if (openFile == NULL) {
-            printf("Unable to open the file %s\n", filename);
-            return -1;
-        }
-        SysOpenFile currSysFile;
-        currSysFile.file = openFile;
-        currSysFile.numProcessesAccessing = 1;
-        currSysFile.filename = copyString(filename);
-        index = fileManager->addFile(currSysFile);
-    }
-    else { // the file is already open by another process
-        currSysFile->numProcessesAccessing++;
-    }
+	int index = 0;
+	SysOpenFile* currSysFile = fileManager->getFile(filename, index);
 
-    // Either way, add it to the current PCB's open file list
-    UserOpenFile currUserFile;
-    currUserFile.indexInSysOpenFileList = index;
-    currUserFile.currOffsetInFile = 0;
-    int currFileID = currentThread->space->getPCB()->addFile(currUserFile);
-    return currFileID;
+	if (currSysFile == NULL) { // if no process currently has it open
+		OpenFile* openFile = fileSystem->Open(filename);
+		if (openFile == NULL) {
+			printf("Unable to open the file %s\n", filename);
+			return -1;
+		}
+		SysOpenFile currSysFile;
+		currSysFile.file = openFile;
+		currSysFile.numProcessesAccessing = 1;
+		currSysFile.filename = copyString(filename);
+		index = fileManager->addFile(currSysFile);
+	}
+	else { // the file is already open by another process
+		currSysFile->numProcessesAccessing++;
+	}
+
+	// Either way, add it to the current PCB's open file list
+	UserOpenFile currUserFile;
+	currUserFile.indexInSysOpenFileList = index;
+	currUserFile.currOffsetInFile = 0;
+	int currFileID = currentThread->space->getPCB()->addFile(currUserFile);
+	return currFileID;
 }
 
 //----------------------------------------------------------------------
@@ -456,75 +460,75 @@ int openImpl(char* filename) {
 
 int userReadWrite(int virtAddr, char* buffer, int size, int type) {
 
-    int physAddr = 0;
-    int numBytesFromPSLeft = 0;
-    int numBytesCopied = 0;
-    int numBytesToCopy = 0;
+	int physAddr = 0;
+	int numBytesFromPSLeft = 0;
+	int numBytesCopied = 0;
+	int numBytesToCopy = 0;
 
-    if (type == USER_READ) { // from buffer to main memory
-        while (size > 0) {
-            physAddr = currentThread->space->Translate(virtAddr);
-            numBytesFromPSLeft = PageSize - physAddr % PageSize;
-            numBytesToCopy = (numBytesFromPSLeft < size) ? numBytesFromPSLeft : size;
-            bcopy(buffer + numBytesCopied, machine->mainMemory + physAddr, numBytesToCopy);
-            numBytesCopied += numBytesToCopy;
-            size -= numBytesToCopy;
-            virtAddr += numBytesToCopy;
-        }
-    }
-    else if (type == USER_WRITE) { // from main memory to buffer
-        while (size > 0) {
-            physAddr = currentThread->space->Translate(virtAddr);
-            numBytesFromPSLeft = PageSize - physAddr % PageSize;
-            numBytesToCopy = (numBytesFromPSLeft < size) ? numBytesFromPSLeft : size;
-            bcopy(machine->mainMemory + physAddr, buffer + numBytesCopied, numBytesToCopy);
-            numBytesCopied += numBytesToCopy;
-            size -= numBytesToCopy;
-            virtAddr += numBytesToCopy;
-        }
-    }
-    else {
-        printf ("Invalid type passed in.\n");
-        ASSERT(FALSE);
-    }
-    return numBytesCopied; 
+	if (type == USER_READ) { // from buffer to main memory
+		while (size > 0) {
+			physAddr = currentThread->space->Translate(virtAddr);
+			numBytesFromPSLeft = PageSize - physAddr % PageSize;
+			numBytesToCopy = (numBytesFromPSLeft < size) ? numBytesFromPSLeft : size;
+			bcopy(buffer + numBytesCopied, machine->mainMemory + physAddr, numBytesToCopy);
+			numBytesCopied += numBytesToCopy;
+			size -= numBytesToCopy;
+			virtAddr += numBytesToCopy;
+		}
+	}
+	else if (type == USER_WRITE) { // from main memory to buffer
+		while (size > 0) {
+			physAddr = currentThread->space->Translate(virtAddr);
+			numBytesFromPSLeft = PageSize - physAddr % PageSize;
+			numBytesToCopy = (numBytesFromPSLeft < size) ? numBytesFromPSLeft : size;
+			bcopy(machine->mainMemory + physAddr, buffer + numBytesCopied, numBytesToCopy);
+			numBytesCopied += numBytesToCopy;
+			size -= numBytesToCopy;
+			virtAddr += numBytesToCopy;
+		}
+	}
+	else {
+		printf ("Invalid type passed in.\n");
+		ASSERT(FALSE);
+	}
+	return numBytesCopied;
 }
 
 //----------------------------------------------------------------------
 // Write file system call implementation
 //----------------------------------------------------------------------
 void writeImpl() {
-    
-    int writeAddr = machine->ReadRegister(4);
-    int size = machine->ReadRegister(5);
-    int fileID = machine->ReadRegister(6);
-//    printf("R2: %d \n", machine->ReadRegister(2));
-//    printf("R4: %d \n", machine->ReadRegister(4));
-//    printf("R5: %d \n", machine->ReadRegister(5));
-//    printf("R6: %d \n", machine->ReadRegister(6));
-//    printf("R7: %d \n", machine->ReadRegister(7));
 
-    char* buffer = new char[size + 1];
-    if (fileID == ConsoleOutput) {
-        userReadWrite(writeAddr, buffer, size, USER_WRITE);
-        buffer[size] = 0; // always terminate
-        printf("%s", buffer);
-    }
-    else {
-        buffer = new char[size];
-        userReadWrite(writeAddr, buffer, size, USER_WRITE);
-        UserOpenFile* userFile = currentThread->space->getPCB()->getFile(fileID);
-        if (userFile == NULL) {
-            return;
-        } else {
-            SysOpenFile* sysFile = 
-                    fileManager->getFile(userFile->indexInSysOpenFileList);
-            int numBytesWritten = 
-                    sysFile->file->WriteAt(buffer, size, userFile->currOffsetInFile);
-            userFile->currOffsetInFile += numBytesWritten;
-        }
-    }
-    delete [] buffer;
+	int writeAddr = machine->ReadRegister(4);
+	int size = machine->ReadRegister(5);
+	int fileID = machine->ReadRegister(6);
+	//    printf("R2: %d \n", machine->ReadRegister(2));
+	//    printf("R4: %d \n", machine->ReadRegister(4));
+	//    printf("R5: %d \n", machine->ReadRegister(5));
+	//    printf("R6: %d \n", machine->ReadRegister(6));
+	//    printf("R7: %d \n", machine->ReadRegister(7));
+
+	char* buffer = new char[size + 1];
+	if (fileID == ConsoleOutput) {
+		userReadWrite(writeAddr, buffer, size, USER_WRITE);
+		buffer[size] = 0; // always terminate
+		printf("%s", buffer);
+	}
+	else {
+		buffer = new char[size];
+		userReadWrite(writeAddr, buffer, size, USER_WRITE);
+		UserOpenFile* userFile = currentThread->space->getPCB()->getFile(fileID);
+		if (userFile == NULL) {
+			return;
+		} else {
+			SysOpenFile* sysFile =
+					fileManager->getFile(userFile->indexInSysOpenFileList);
+			int numBytesWritten =
+					sysFile->file->WriteAt(buffer, size, userFile->currOffsetInFile);
+			userFile->currOffsetInFile += numBytesWritten;
+		}
+	}
+	delete [] buffer;
 }
 
 //----------------------------------------------------------------------
@@ -538,11 +542,11 @@ int readImpl() {
 	int fileID = machine->ReadRegister(6);
 	int numBytesRead = 0;
 	char* buffer = new char[size + 1];
-//	printf("R2: %d \n", machine->ReadRegister(2));
-//	printf("R4: %d \n", readAddr);
-//	printf("R5: %d \n", size);
-//	printf("R6: %d \n", fileID);
-//	printf("R7: %d \n", machine->ReadRegister(7));
+	//	printf("R2: %d \n", machine->ReadRegister(2));
+	//	printf("R4: %d \n", readAddr);
+	//	printf("R5: %d \n", size);
+	//	printf("R6: %d \n", fileID);
+	//	printf("R7: %d \n", machine->ReadRegister(7));
 
 	if (fileID == ConsoleInput) { //reading from console
 		int i = 0;
@@ -582,19 +586,19 @@ int readImpl() {
 
 void closeImpl(OpenFileId id) {
 
-    int fileID = machine->ReadRegister(4);
+	int fileID = machine->ReadRegister(4);
 
-    UserOpenFile* userFile = currentThread->space->getPCB()->getFile(fileID);
-    if (userFile == NULL) {
-    	printf("Null");
-        return;
-    } else {
-        SysOpenFile* sysFile =
-                fileManager->getFile(userFile->indexInSysOpenFileList);
-        printf("File is opened by %d processes \n", sysFile->numProcessesAccessing);
-        sysFile->closedBySingleProcess();
-        currentThread->space->getPCB()->removeFile(fileID);
-    }
+	UserOpenFile* userFile = currentThread->space->getPCB()->getFile(fileID);
+	if (userFile == NULL) {
+		//printf("Null");
+		return;
+	} else {
+		SysOpenFile* sysFile =
+				fileManager->getFile(userFile->indexInSysOpenFileList);
+		// printf("File is opened by %d processes \n", sysFile->numProcessesAccessing);
+		sysFile->closedBySingleProcess();
+		currentThread->space->getPCB()->removeFile(fileID);
+	}
 
 }
 
@@ -606,17 +610,17 @@ void closeImpl(OpenFileId id) {
 
 void IncrementPC(void) {
 
-    int currentReg = machine->ReadRegister(PCReg);
-    int nextReg = machine->ReadRegister(NextPCReg);
-    int prevReg = machine->ReadRegister(PrevPCReg);
+	int currentReg = machine->ReadRegister(PCReg);
+	int nextReg = machine->ReadRegister(NextPCReg);
+	int prevReg = machine->ReadRegister(PrevPCReg);
 
-    currentReg = currentReg + 4;
-    nextReg = nextReg + 4;
-    prevReg = prevReg + 4;
+	currentReg = currentReg + 4;
+	nextReg = nextReg + 4;
+	prevReg = prevReg + 4;
 
-    machineLock->Acquire();
-    machine->WriteRegister(PCReg, currentReg);
-    machine->WriteRegister(NextPCReg, nextReg);
-    machine->WriteRegister(PrevPCReg, prevReg);
-    machineLock->Release();
+	machineLock->Acquire();
+	machine->WriteRegister(PCReg, currentReg);
+	machine->WriteRegister(NextPCReg, nextReg);
+	machine->WriteRegister(PrevPCReg, prevReg);
+	machineLock->Release();
 }
