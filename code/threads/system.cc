@@ -7,7 +7,6 @@
 
 #include "copyright.h"
 #include "system.h"
-#include "synch.h"
 
 // This defines *all* of the global data structures used by Nachos.
 // These are all initialized and de-allocated by this file.
@@ -30,28 +29,30 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
-Lock* machineLock;
+#ifndef VM
+MemoryManager *memmanager; // manages free pages
+#else
+VMemoryManager *memmanager; // manages free pages
+#endif
+ProcessManager *psmanager;
+SysOpenFile **sysOpenFiles;
+int sysOpenFileCount;
+int lastSysFileId;
+char* diskBuffer;
+#endif
 
-char diskBuffer[PageSize]; // PageSize defined in machine.h
-Lock* diskBufferLock;
-
-MemoryManager* memManager;
-Lock* memManagerLock;
-
-ProcessManager* processManager;
-Lock* processManagerLock;
-
-SysOpenFileManager* fileManager;
-Lock* fileManagerLock;
-
-#endif // USER_PROGRAM
+#ifdef USE_TLB
+int nextTlbEntry;
+#endif
 
 #ifdef NETWORK
 PostOffice *postOffice;
 #endif
 
+
 // External definition, to allow us to take a pointer to this function
 extern void Cleanup();
+
 
 //----------------------------------------------------------------------
 // TimerInterruptHandler
@@ -159,23 +160,23 @@ Initialize(int argc, char **argv)
 
     interrupt->Enable();
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
+
     
 #ifdef USER_PROGRAM
     machine = new Machine(debugUserProg);	// this must come first
-    machineLock = new Lock("machineLock");
+#ifndef VM
+    memmanager = new MemoryManager(NumPhysPages);
+#endif
+    psmanager = new ProcessManager(1024); // it's not like we can even run 4
+    sysOpenFiles = new SysOpenFile*[MAX_SYS_FILES];
+    sysOpenFileCount = 0;
+    lastSysFileId = 2;
+    diskBuffer = new char[PageSize];
+#endif
 
-    memManager = new MemoryManager();
-    memManagerLock = new Lock("memManagerLock");
-
-    diskBufferLock = new Lock("diskBufferLock");
-
-    processManager = new ProcessManager();
-    processManagerLock = new Lock("processManagerLock");
-
-    fileManager = new SysOpenFileManager();
-    fileManagerLock = new Lock("fileManagerLock");
-
-#endif // USER_PROGRAM
+#ifdef USE_TLB
+    nextTlbEntry = 0;
+#endif
 
 #ifdef FILESYS
     synchDisk = new SynchDisk("DISK");
@@ -183,6 +184,11 @@ Initialize(int argc, char **argv)
 
 #ifdef FILESYS_NEEDED
     fileSystem = new FileSystem(format);
+#endif
+
+#ifdef VM
+    DEBUG('a', "Virtual memory enabled. Size: %d pages\n", NumVmPages);
+    memmanager = new VMemoryManager(NumPhysPages, NumVmPages);
 #endif
 
 #ifdef NETWORK
@@ -204,19 +210,10 @@ Cleanup()
     
 #ifdef USER_PROGRAM
     delete machine;
-    delete machineLock;
-
-    delete memManager;
-    delete memManagerLock;
-
-    delete diskBufferLock;
-
-    delete processManager;
-    delete processManagerLock;
-
-    delete fileManager;
-    delete fileManagerLock;
-#endif // USER_PROGRAM
+    delete memmanager;
+    delete psmanager;
+    delete[] diskBuffer;
+#endif
 
 #ifdef FILESYS_NEEDED
     delete fileSystem;
@@ -227,9 +224,9 @@ Cleanup()
 #endif
     
     delete timer;
+    delete stats;
     delete scheduler;
     delete interrupt;
-    
     Exit(0);
 }
 

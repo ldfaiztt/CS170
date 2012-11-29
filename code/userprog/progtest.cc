@@ -24,25 +24,21 @@ void
 StartProcess(char *filename)
 {
     OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+    PCB *pcb;
+
     if (executable == NULL) {
 	printf("Unable to open file %s\n", filename);
 	return;
     }
-    
-    int newPID = processManager->getPID();
-    PCB* newPCB = new PCB(newPID, -1);
-    newPCB->status = P_RUNNING;
-    processManager->addProcess(newPCB, newPID);
-    AddrSpace* space = new AddrSpace(executable, newPCB);    
+
+    space = new AddrSpace();
+    ASSERT(space->Init(executable) == 0);
+    space->InitPCB(NULL, currentThread);
+    // the first process gets PID 1
     currentThread->space = space;
 
     delete executable;			// close file
-
-    if ((space->getPCB())->getPID() == -1) {
-        printf("Unable to acquire valid PCB for process. Terminating.\n");
-        delete space;
-        return;
-    }
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register

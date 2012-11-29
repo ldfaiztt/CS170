@@ -40,6 +40,11 @@ class TranslationEntry {
 			// page is referenced or modified.
     bool dirty;         // This bit is set by the hardware every time the
 			// page is modified.
+    bool inMem;         // If this bit is set, physicalPage points to the correct
+                        // page in physical memory. If it is not, LOAD THE PAGE FIRST!
+    int swapSector;     // Page location in swap file.
+
+    bool firstUse;      // This page is new. Don't bother reading in from swap.
 };
 
 #endif

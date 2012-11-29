@@ -80,12 +80,11 @@ class Lock {
   private:
     char* name;				// for debugging
 #ifdef CHANGED
-
-    int value;                          // 1 if available, 0 if taken
-    List* queue;                         // threads waiting for the lock
-    Thread* lockingThread;              // if value == LOCK_BUSY,
-                                        // this is the thread in posession
+    bool held;
+    List *queue;
+    Thread *current;
 #endif
+    // plus some other stuff you'll need to define
 };
 
 // The following class defines a "condition variable".  A condition
@@ -137,9 +136,10 @@ class Condition {
 
   private:
     char* name;
-
+    // plus some other stuff you'll need to define
 #ifdef CHANGED
-    List* queue;                        // threads waiting for condition
+    Lock *lock;
+    List *queue;
 #endif
 };
 #endif // SYNCH_H

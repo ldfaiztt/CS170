@@ -30,14 +30,14 @@ static void Mult(int a, int b, bool signedArith, int* hiPtr, int* loPtr);
 void
 Machine::Run()
 {
-    Instruction *instr = new Instruction;  // storage for decoded instruction
+    Instruction instr;  // storage for decoded instruction
 
     if(DebugIsEnabled('m'))
         printf("Starting thread \"%s\" at time %d\n",
 	       currentThread->getName(), stats->totalTicks);
     interrupt->setStatus(UserMode);
     for (;;) {
-        OneInstruction(instr);
+        OneInstruction(&instr);
 	interrupt->OneTick();
 	if (singleStep && (runUntilTime <= stats->totalTicks))
 	  Debugger();
@@ -113,7 +113,7 @@ Machine::OneInstruction(Instruction *instr)
 		TypeToReg(str->args[1], instr), TypeToReg(str->args[2], instr));
        printf("\n");
        }
-
+    
     // Compute next pc, but don't install in case there's an error or branch.
     int pcAfter = registers[NextPCReg] + 4;
     int sum, diff, tmp, value;

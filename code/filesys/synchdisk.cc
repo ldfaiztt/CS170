@@ -17,6 +17,14 @@
 #include "copyright.h"
 #include "synchdisk.h"
 
+void SynchDisk::BeginTransaction() {
+    transactionlock->Acquire();
+}
+
+void SynchDisk::EndTransaction() {
+    transactionlock->Release();
+}
+
 //----------------------------------------------------------------------
 // DiskRequestDone
 // 	Disk interrupt handler.  Need this to be a C routine, because 
@@ -45,6 +53,7 @@ SynchDisk::SynchDisk(char* name)
     semaphore = new Semaphore("synch disk", 0);
     lock = new Lock("synch disk lock");
     disk = new Disk(name, DiskRequestDone, (int) this);
+    transactionlock = new Lock("synch trans lock");
 }
 
 //----------------------------------------------------------------------
@@ -55,9 +64,16 @@ SynchDisk::SynchDisk(char* name)
 
 SynchDisk::~SynchDisk()
 {
+    delete transactionlock;
     delete disk;
     delete lock;
     delete semaphore;
+}
+
+void SynchDisk::ReadSector(int sectorNumber, char* data) {
+    BeginTransaction();
+    ReadSectorTrans(sectorNumber, data);
+    EndTransaction();
 }
 
 //----------------------------------------------------------------------
@@ -70,12 +86,19 @@ SynchDisk::~SynchDisk()
 //----------------------------------------------------------------------
 
 void
-SynchDisk::ReadSector(int sectorNumber, char* data)
+SynchDisk::ReadSectorTrans(int sectorNumber, char* data)
 {
+    ASSERT(transactionlock->isHeldByCurrentThread());
     lock->Acquire();			// only one disk I/O at a time
     disk->ReadRequest(sectorNumber, data);
     semaphore->P();			// wait for interrupt
     lock->Release();
+}
+
+void SynchDisk::WriteSector(int sectorNumber, char* data) {
+    BeginTransaction();
+    WriteSectorTrans(sectorNumber, data);
+    EndTransaction();
 }
 
 //----------------------------------------------------------------------
@@ -88,8 +111,9 @@ SynchDisk::ReadSector(int sectorNumber, char* data)
 //----------------------------------------------------------------------
 
 void
-SynchDisk::WriteSector(int sectorNumber, char* data)
+SynchDisk::WriteSectorTrans(int sectorNumber, char* data)
 {
+    ASSERT(transactionlock->isHeldByCurrentThread());
     lock->Acquire();			// only one disk I/O at a time
     disk->WriteRequest(sectorNumber, data);
     semaphore->P();			// wait for interrupt

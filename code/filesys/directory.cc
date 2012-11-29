@@ -24,6 +24,7 @@
 #include "utility.h"
 #include "filehdr.h"
 #include "directory.h"
+#include "system.h"
 
 //----------------------------------------------------------------------
 // Directory::Directory
@@ -35,12 +36,10 @@
 //	"size" is the number of entries in the directory
 //----------------------------------------------------------------------
 
-Directory::Directory(int size)
+Directory::Directory()
 {
-    table = new DirectoryEntry[size];
-    tableSize = size;
-    for (int i = 0; i < tableSize; i++)
-	table[i].inUse = FALSE;
+    table = NULL;
+    tableSize = 0;
 }
 
 //----------------------------------------------------------------------
@@ -63,7 +62,14 @@ Directory::~Directory()
 void
 Directory::FetchFrom(OpenFile *file)
 {
-    (void) file->ReadAt((char *)table, tableSize * sizeof(DirectoryEntry), 0);
+    ASSERT(tableSize == 0);
+    ASSERT(table == NULL);
+
+    tableSize = file->Length() / sizeof(DirectoryEntry);
+    if (tableSize > 0) {
+        table = new DirectoryEntry[tableSize];
+        (void) file->ReadAt((char *)table, tableSize * sizeof(DirectoryEntry), 0);
+    }
 }
 
 //----------------------------------------------------------------------
@@ -76,7 +82,8 @@ Directory::FetchFrom(OpenFile *file)
 void
 Directory::WriteBack(OpenFile *file)
 {
-    (void) file->WriteAt((char *)table, tableSize * sizeof(DirectoryEntry), 0);
+    int written = file->WriteAt((char *)table, tableSize * sizeof(DirectoryEntry), 0);
+    ASSERT(written == tableSize * sizeof(DirectoryEntry));
 }
 
 //----------------------------------------------------------------------
@@ -139,7 +146,41 @@ Directory::Add(char *name, int newSector)
             table[i].sector = newSector;
         return TRUE;
 	}
-    return FALSE;	// no space.  Fix when we have extensible files.
+
+    // allocate space for bigger table
+    int newTableSize = tableSize + DIRECTORY_EXTEND_LEN;
+    if ((unsigned)newTableSize > MaxFileSize / sizeof(DirectoryEntry)) {
+        newTableSize = MaxFileSize / sizeof(DirectoryEntry);
+    }
+
+    if (newTableSize == tableSize) {
+        return FALSE;
+    }
+
+    if (currentThread->space) {
+        printf("D %d: %d -> %d\n", currentThread->space->pcb->GetPID(), tableSize, newTableSize);
+    } else {
+        DEBUG('D', "Resize directory: %d -> %d\n", tableSize, newTableSize);
+    }
+
+    DirectoryEntry *newTable = new DirectoryEntry[newTableSize];
+    memcpy(newTable, table, tableSize * sizeof(DirectoryEntry));
+
+    // populate entries
+    int entry = tableSize;
+    newTable[entry].inUse = TRUE;
+    strncpy(newTable[entry].name, name, FileNameMaxLen);
+    newTable[entry].sector = newSector;
+    for (int i = tableSize + 1; i < newTableSize; i++) {
+        newTable[i].inUse = FALSE;
+    }
+
+    // clear old table
+    delete table;
+    table = newTable;
+    tableSize = newTableSize;
+
+    return TRUE;
 }
 
 //----------------------------------------------------------------------
@@ -183,15 +224,15 @@ Directory::List()
 void
 Directory::Print()
 { 
-    FileHeader *hdr = new FileHeader;
 
     printf("Directory contents:\n");
     for (int i = 0; i < tableSize; i++)
 	if (table[i].inUse) {
+            FileHeader *hdr = new FileHeader;
 	    printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
 	    hdr->FetchFrom(table[i].sector);
 	    hdr->Print();
+            delete hdr;
 	}
     printf("\n");
-    delete hdr;
 }

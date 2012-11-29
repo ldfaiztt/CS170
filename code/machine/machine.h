@@ -33,6 +33,9 @@
 					// simplicity
 
 #define NumPhysPages    32
+#ifdef VM
+#define NumVmPages      512 // Per project 3 guide.
+#endif
 #define MemorySize 	(NumPhysPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
 

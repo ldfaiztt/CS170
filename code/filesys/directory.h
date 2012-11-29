@@ -19,6 +19,8 @@
 
 #include "openfile.h"
 
+#define DIRECTORY_EXTEND_LEN 10
+
 #define FileNameMaxLen 		9	// for simplicity, we assume 
 					// file names are <= 9 characters long
 
@@ -50,7 +52,7 @@ class DirectoryEntry {
 
 class Directory {
   public:
-    Directory(int size); 		// Initialize an empty directory
+    Directory(); 		// Initialize an empty directory
 					// with space for "size" files
     ~Directory();			// De-allocate the directory
 

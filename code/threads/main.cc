@@ -59,13 +59,12 @@ extern int testnum;
 
 // External functions used by this file
 
-#if defined(THREADS) && defined(CHANGED)
-extern void ThreadTest(int);
-extern void openLaundromat(int);
+#ifdef CHANGED
+extern void ThreadTest(int n), Copy(char *unixFile, char *nachosFile);
 #else
-extern void ThreadTest(void);
+extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 #endif
-extern void Copy(char *unixFile, char *nachosFile);
+extern void ScaryHansTest(char *a, char *b);
 extern void Print(char *file), PerformanceTest(void);
 extern void StartProcess(char *file), ConsoleTest(char *in, char *out);
 extern void MailTest(int networkID);
@@ -93,16 +92,13 @@ main(int argc, char **argv)
     DEBUG('t', "Entering main");
     (void) Initialize(argc, argv);
     
-#ifdef THREADS
-
-
-#if defined(CHANGED) && defined(HW1_LAUNDRY)
-    int numCustomers = 0;
+#ifdef HW1_THREADS
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
       argCount = 1;
       switch (argv[0][1]) {
       case 'q':
-        numCustomers = atoi(argv[1]);
+        ASSERT(argc > 1);
+        testnum = atoi(argv[1]);
         argCount++;
         break;
       default:
@@ -110,38 +106,13 @@ main(int argc, char **argv)
         break;
       }
     }
-    openLaundromat(numCustomers);
-#elif defined(CHANGED) // Just run threads test with changed code
-    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
-      argCount = 1;
-      switch (argv[0][1]) {
-      case 'q':
-        testnum = atoi(argv[1]);
-        argCount++;
-        break;
-      default:
-        testnum = -1;
-        break;
-      }
-    }
+
+# ifdef CHANGED
     ThreadTest(testnum);
-#else // Default NACHOS code
-    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
-      argCount = 1;
-      switch (argv[0][1]) {
-      case 'q':
-        testnum = atoi(argv[1]);
-        argCount++;
-        break;
-      default:
-        testnum = 1;
-        break;
-      }
-    }
+# else
     ThreadTest();
-#endif // CHANGED
-
-#endif // THREADS
+# endif
+#endif
 
     for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 	argCount = 1;
@@ -184,6 +155,10 @@ main(int argc, char **argv)
             fileSystem->Print();
 	} else if (!strcmp(*argv, "-t")) {	// performance test
             PerformanceTest();
+        } else if (!strcmp(*argv, "-Z")) { // scary hans test
+            ASSERT(argc > 2);
+            ScaryHansTest(argv[1], argv[2]);
+            argCount = 3;
 	}
 #endif // FILESYS
 #ifdef NETWORK

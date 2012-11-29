@@ -19,7 +19,6 @@
 #include "system.h"
 #include "addrspace.h"
 #include "noff.h"
-#include "machine.h" // definition of PageSize
 #ifdef HOST_SPARC
 #include <strings.h>
 #endif
@@ -46,6 +45,40 @@ SwapHeader (NoffHeader *noffH)
 	noffH->uninitData.inFileAddr = WordToHost(noffH->uninitData.inFileAddr);
 }
 
+int AddrSpace::Init(const AddrSpace *space) {
+    DEBUG('2', "Copying AddrSpace %p with %d pages\n", space, space->numPages);
+
+    pcb = NULL;
+
+    numPages = space->numPages;
+
+    if (numPages > memmanager->getFreePages()) {
+        DEBUG('s', "Not enough free pages to create address space\n");
+        return 1;
+    }
+
+    pageTable = new TranslationEntry[numPages];
+    for (int i = 0; i < numPages; i++) {
+        memcpy(&pageTable[i], &(space->pageTable[i]), sizeof(TranslationEntry));
+        int page = memmanager->getPage();
+#ifndef VM
+        ASSERT(page != -1);
+#endif
+        pageTable[i].physicalPage = page; // Note: with VM this doesn't do anything because inMem is set to false below.
+#ifdef VM
+	// Copy parent page.
+	pageTable[i].inMem = FALSE;
+	pageTable[i].firstUse = FALSE;
+	pageTable[i].swapSector = memmanager->getSector();
+	memmanager->clonePage(&pageTable[i], &(space->pageTable[i]));
+#else
+        memcpy(machine->mainMemory + (page * PageSize), 
+	       machine->mainMemory + (space->pageTable[i].physicalPage * PageSize), PageSize);
+#endif
+    }
+    return 0;
+}
+
 //----------------------------------------------------------------------
 // AddrSpace::AddrSpace
 // 	Create an address space to run a user program.
@@ -60,149 +93,217 @@ SwapHeader (NoffHeader *noffH)
 //
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
-
-AddrSpace::AddrSpace(OpenFile *executable, PCB* pcb)
-//there is a bug in this code
+int AddrSpace::Init(OpenFile *executable)
 {
+    pcb = NULL;
+
     NoffHeader noffH;
     unsigned int i, size;
-    int read;
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
 		(WordToHost(noffH.noffMagic) == NOFFMAGIC))
     	SwapHeader(&noffH);
     ASSERT(noffH.noffMagic == NOFFMAGIC);
+    if (noffH.noffMagic != NOFFMAGIC) {
+        DEBUG('s', "NOFF magic is wrong\n");
+        return 1;
+    }
 
-    // how big is address space?
+// how big is address space?
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
 			+ UserStackSize;	// we need to increase the size
 						// to leave room for the stack
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
-						// to run anything too big --
-						// at least until we have
-						// virtual memory
+    // check we're not trying to run anything too big -- at least until we have virtual memory
+    if (numPages > memmanager->getFreePages()) {
+        DEBUG('s', "Not enough free pages to create address space\n");
+        return 1;
+    }
 
-    memManagerLock->Acquire();
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
+// first, set up the translation 
+    pageTable = new TranslationEntry[numPages];
+    for (i = 0; i < numPages; i++) {
+        int page = memmanager->getPage();
+#ifndef VM
+        ASSERT(page != -1);
+#endif
+	pageTable[i].virtualPage = i;
+	pageTable[i].physicalPage = page;
+	pageTable[i].valid = TRUE;
+	pageTable[i].use = FALSE;
+	pageTable[i].dirty = FALSE;
+	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
+					// a separate page, we could set its 
+					// pages to be read-only
+#ifdef VM
+	pageTable[i].inMem = FALSE;
+	pageTable[i].swapSector = memmanager->getSector();
+	pageTable[i].firstUse = TRUE;
+#endif
+	// With VM, pages aren't in memory yet.
+#ifndef VM	
+	memset(machine->mainMemory + (page * PageSize), '0', PageSize);
+#endif
+    }
+    
+// zero out the entire address space, to zero the unitialized data segment 
+// and the stack segment
+    //bzero(machine->mainMemory, size);
 
-    if (numPages <= memManager->getNumFreePages()) {
-
-        this->pcb = pcb;
-
-        // Set up the page table
-        pageTable = new TranslationEntry[numPages];
-        for (i = 0; i < numPages; i++) {
-            pageTable[i].virtualPage = i;
-            pageTable[i].physicalPage = memManager->getPage();
-            pageTable[i].valid = TRUE;
-            pageTable[i].use = FALSE;
-            pageTable[i].dirty = FALSE;
-            pageTable[i].readOnly = FALSE;
+// then, copy in the code and data segments into memory
+    if (noffH.code.size > 0) {
+        DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
+			noffH.code.virtualAddr, noffH.code.size);
+        int ret = ReadFile(noffH.code.virtualAddr, executable, noffH.code.size, noffH.code.inFileAddr);
+        if (ret != 0) {
+            DEBUG('s', "Unable to read code from NOFF\n");
+            return 1;
         }
-        memManagerLock->Release();
-        
-        machineLock->Acquire();
-        // Zero out the physical pages allocated to this process.
-        for (i = 0; i < numPages; i++) {
-            int physAddr = pageTable[i].physicalPage * PageSize;
-            bzero(&(machine->mainMemory[physAddr]), PageSize);
-        }
-        machineLock->Release();
-
-        printf("Loaded Program: %d code | %d data | %d bss\n",
-            noffH.code.size, noffH.initData.size, noffH.uninitData.size);
-
-        // then, copy in the code and data segments into memory using new
-        // ReadFile functionality
-        if (noffH.code.size > 0) {
-            DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
-                noffH.code.virtualAddr, noffH.code.size);
-            read = ReadFile(noffH.code.virtualAddr,executable,noffH.code.size,
-                noffH.code.inFileAddr);
-        }
-        if (noffH.initData.size > 0) {
-            DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
-                noffH.initData.virtualAddr, noffH.initData.size);
-            read = ReadFile(noffH.initData.virtualAddr,executable,
-                noffH.initData.size,noffH.initData.inFileAddr);
+    }
+    if (noffH.initData.size > 0) {
+        DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
+			noffH.initData.virtualAddr, noffH.initData.size);
+        int ret = ReadFile(noffH.initData.virtualAddr, executable, noffH.initData.size, noffH.initData.inFileAddr);
+        if (ret != 0) {
+            DEBUG('s', "Unable to read data from NOFF\n");
+            return 1;
         }
     }
 
-    else { // Not enough free pages to acquire.
-        memManagerLock->Release();
-        pageTable = NULL;
-        pcb = new PCB(-1,-1);
-    }
+    DEBUG('2', "Loaded Program: %d code | %d data | %d bss (%d pages)\n", noffH.code.size, noffH.initData.size, noffH.uninitData.size, numPages);
+
+    return 0;
 }
 
-//----------------------------------------------------------------------
-// AddrSpace::AddrSpace
-//     Copy constructor that makes an identical copy of this address space.
-//----------------------------------------------------------------------
+// note: pages are /always/ aligned to PageSize
+int AddrSpace::ReadFile(int virtAddr, OpenFile* file, int size, int fileAddr) {
+    int paddr, vaddr, faddr;
+    int remaining = size;
 
-AddrSpace::AddrSpace(const AddrSpace* other, PCB* pcb) {
-    
-    ASSERT(other->numPages <= NumPhysPages);
+    DEBUG('a', "ReadFile %d from %08x to %08x\n", size, fileAddr, virtAddr);
 
-    // Copy all page table entries over, create associated PCB
-    numPages = other->numPages;
-    memManagerLock->Acquire();
-    DEBUG('a', "Initializing address space with num pages: %d.\n", numPages);
-
-    if (numPages <= memManager->getNumFreePages()) {
-
-        this->pcb = pcb;
-        pageTable = new TranslationEntry[numPages];
-
-        for (int i = 0; i < numPages; i++) { 
-
-            pageTable[i].virtualPage = i;
-            pageTable[i].physicalPage = memManager->getPage();
-            pageTable[i].valid = (other->pageTable)[i].valid;
-            pageTable[i].use = (other->pageTable)[i].use;
-            pageTable[i].dirty = (other->pageTable)[i].dirty;
-            pageTable[i].readOnly = (other->pageTable)[i].readOnly;
+    vaddr = virtAddr;
+    faddr = fileAddr;
+    while (remaining) {
+        int toread = PageSize - (vaddr % PageSize);
+        if (toread > remaining) {
+            toread = remaining;
         }
-        memManagerLock->Release();
 
-        machineLock->Acquire();
-        for (int i = 0; i < numPages; i++) {
-            int otherPhysAddr = (other->pageTable)[i].physicalPage * PageSize;
-            int thisPhysAddr = pageTable[i].physicalPage * PageSize;
-            bzero(&(machine->mainMemory[thisPhysAddr]), PageSize); 
-            bcopy(&(machine->mainMemory[otherPhysAddr]), 
-                  &(machine->mainMemory[thisPhysAddr]), PageSize);
+        if (!Translate(vaddr, &paddr, TRUE)) {
+            DEBUG('s', "Unable to translate address %08x\n", vaddr);
+            return 1;
         }
-        machineLock->Release();
+
+        int ret = file->ReadAt(diskBuffer, toread, faddr);
+        if (ret != toread) {
+            DEBUG('s', "Unable to read proper amount of stuff from file\n");
+            return 1;
+        }
+
+        memcpy(machine->mainMemory + paddr, diskBuffer, toread);
+
+        remaining -= toread;
+        vaddr += toread;
+        faddr += toread;
     }
-    else {
-        memManagerLock->Release();
-        pageTable = NULL;
-        pcb = new PCB(-1,-1);
+
+    return 0;
+}
+
+void AddrSpace::InitPCB(AddrSpace *parentspace, Thread *thread) {
+    PCB *temp = NULL;
+    if (parentspace) {
+        temp = parentspace->pcb;
     }
+
+    pcb = psmanager->GetNewPCB(temp, thread);
 }
 
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
-// 	Deallocate an address space.  Nothing for now!
+// 	Dealloate an address space.  Nothing for now!
 //----------------------------------------------------------------------
 
 AddrSpace::~AddrSpace()
 {
-    if (isValid()) {
-        memManagerLock->Acquire();
-        for (int i = 0; i < numPages; i++) { // free the pages
-            memManager->clearPage(pageTable[i].physicalPage);
+
+    if (pageTable) {
+        for (int i = 0; i < numPages; i++) {
+#ifdef VM
+            memmanager->clearPage(&pageTable[i]);
+	    // Invalidate TLB.
+	    for (int i = 0; i < TLBSize; i++) {
+	      TranslationEntry *tlbEntry = &(machine->tlb[i]);
+	      tlbEntry->valid = 0;
+	    }
+
+#else
+            memmanager->clearPage(pageTable[i].physicalPage);
+#endif
         }
-        memManagerLock->Release();
-        delete [] pageTable;
-        delete pcb;
     }
+    delete[] pageTable;
+}
+
+bool AddrSpace::Translate(int vaddr, int *paddr, bool writing) {
+    if (!paddr) {
+        return false;
+    }
+
+    TranslationEntry *entry = NULL;
+    int i;
+
+    int vpage = vaddr / PageSize;
+    int voffset = vaddr % PageSize;
+
+    for (i = 0; i < numPages; i++) {
+        if (pageTable[i].valid && pageTable[i].virtualPage == vpage) {
+            entry = &pageTable[i];
+            break;
+        }
+    }
+
+    if (entry == NULL) {
+        DEBUG('s', "Unable to find virtual address %08x in xlate\n", vaddr);
+        return false;
+    }
+
+#ifdef VM
+    if (!entry->inMem) {
+      // Page fault.
+      //printf("kfault\n");
+      memmanager->loadPage(entry);
+      //printf("entry->inMem=%d\n",entry->inMem);
+    }
+    if (!entry->inMem) {
+      printf("Failed to load page from swap. Terminating.\n");
+      ASSERT(FALSE);
+    }
+#endif
+
+    entry->use = TRUE;
+    if (writing) {
+      entry->dirty = TRUE;
+    }
+    
+    int ppage = entry->physicalPage;
+
+    if (ppage >= NumPhysPages) {
+        DEBUG('s', "Found page entry, but ppage was too big (%x)\n", ppage);
+        return false;
+    }
+
+    *paddr = ppage * PageSize + voffset;
+
+    DEBUG('a', "Translated %08x into %08x\n", vaddr, *paddr);
+
+    return true;
 }
 
 //----------------------------------------------------------------------
@@ -220,7 +321,6 @@ AddrSpace::InitRegisters()
 {
     int i;
 
-    machineLock->Acquire();
     for (i = 0; i < NumTotalRegs; i++)
 	machine->WriteRegister(i, 0);
 
@@ -235,7 +335,6 @@ AddrSpace::InitRegisters()
    // allocated the stack; but subtract off a bit, to make sure we don't
    // accidentally reference off the end!
     machine->WriteRegister(StackReg, numPages * PageSize - 16);
-    machineLock->Release();
     DEBUG('a', "Initializing stack register to %d\n", numPages * PageSize - 16);
 }
 
@@ -248,7 +347,27 @@ AddrSpace::InitRegisters()
 //----------------------------------------------------------------------
 
 void AddrSpace::SaveState() 
-{}
+{
+
+#ifdef USE_TLB
+  //  printf("savestate %p\n", this);
+    // Invalidate TLB.
+    for (int i = 0; i < TLBSize; i++) {
+      TranslationEntry *tlbEntry = &(machine->tlb[i]);
+      for (int j = 0; j < numPages; j++) {
+	TranslationEntry *addrspaceEntry = &(pageTable[j]);
+	if (tlbEntry->valid && addrspaceEntry->valid && tlbEntry->virtualPage == addrspaceEntry->virtualPage) {
+	  ASSERT(tlbEntry->use);
+	  addrspaceEntry->dirty = tlbEntry->dirty;
+	  addrspaceEntry->use = tlbEntry->use;
+	}
+      }
+      tlbEntry->valid = 0;
+
+    }
+#endif
+
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
@@ -260,98 +379,16 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState() 
 {
+#ifndef USE_TLB
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
-}
-
-//----------------------------------------------------------------------
-// AddrSpace::Translate
-//
-//     Converts a virtual address to a physical address.
-//
-//     Returns -1 for an error in translation, or else the corresponding
-//     physical page number.
-//----------------------------------------------------------------------
-
-int AddrSpace::Translate(int virtualAddress) {
-
-    int pageTableIndex = virtualAddress / PageSize;
-    int offset = virtualAddress % PageSize;
-    int physicalAddress = 0;
-
-    if (virtualAddress < 0 || pageTableIndex > numPages) {
-        physicalAddress = -1;
-    } else {
-        physicalAddress = 
-            pageTable[pageTableIndex].physicalPage * PageSize + offset;
+#else
+    //    printf("restorestate %p\n", this);
+    // Invalidate TLB.
+    for (int i = 0; i < TLBSize; i++) {
+      TranslationEntry *tlbEntry = &(machine->tlb[i]);
+      tlbEntry->valid = 0;
     }
+#endif
 
-    return physicalAddress;
-}
-
-//----------------------------------------------------------------------
-// AddrSpace::ReadFile
-//     
-//     Loads the code and data segments into the translated memory.
-//----------------------------------------------------------------------
-
-int AddrSpace::ReadFile(int virtAddr, OpenFile* file, int size, int fileAddr) {
-
-    int numBytesRead = 0;
-    int numBytesLeft = size;
-    int numBytesToReadThisLoop = 0;
-    int physAddr = 0;
-    int currVirtAddr = virtAddr;
-    int bytesFound = 0;
-
-    while (numBytesRead < size) {
-
-        if (numBytesLeft > PageSize) {
-            numBytesToReadThisLoop = PageSize;
-        } else {
-            numBytesToReadThisLoop = numBytesLeft;
-        }
-        diskBufferLock->Acquire();
-        bytesFound = file->ReadAt(diskBuffer, numBytesToReadThisLoop, fileAddr);
-        diskBufferLock->Release();
-
-        physAddr = Translate(currVirtAddr);
-
-        if (physAddr != -1) { // zero the dest bytes, then copy over
-            
-            machineLock->Acquire();
-            bzero(&(machine->mainMemory)[physAddr], numBytesToReadThisLoop);
-            bcopy(&(diskBuffer[0]), &((machine->mainMemory)[physAddr]),
-                numBytesToReadThisLoop);
-            machineLock->Release();
-
-            currVirtAddr += numBytesToReadThisLoop;
-            numBytesLeft -= numBytesToReadThisLoop;
-
-            numBytesRead += bytesFound;
-            fileAddr += bytesFound;
-        } 
-        else {
-            return -1;
-        }
-    }
-    return 0;
-}
-
-//----------------------------------------------------------------------
-// AddrSpace::getPCB
-//     Returns the associated PCB for this address space.
-//----------------------------------------------------------------------
-
-PCB* AddrSpace::getPCB() {
-    return this->pcb;
-}
-
-//----------------------------------------------------------------------
-// AddrSpace::isValid
-//     Checks that we were able to allocate a new address space successfully.
-//----------------------------------------------------------------------
-
-bool AddrSpace::isValid() {
-    return (pcb != NULL);
 }

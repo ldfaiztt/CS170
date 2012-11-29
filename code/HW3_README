@@ -1,0 +1,48 @@
+Tasks Completed:
+  All tasks were successfully completed. Virtual memory up to 512 pages is supported. The Nachos FS is accessible
+  after running ./nachos -f to initialize the disk.
+
+
+Building and running samples:
+  $ cd code; make
+
+  - test virtual memory:
+    $ cd testvm
+    $ ../vm/nachos -x testvm
+
+  - File system:
+    $ cd testfile
+    $ ../filesys/nachos -f
+    $ ../filesys/nachos  -cp bigfile1 bigfile1
+    $ ../filesys/nachos  -x bigfile1
+
+  
+Program output:
+  - Debug flag '2': Required output given in the project specification.
+    In the output specification, the PID is printed as the first part of the output string. Due to the way we 
+    allocate PCBs, a PID is not available before the first process executes. Therefore allocations for pages
+    that will contain the first process' instruction code will display -1 as the PID. Output displayed once the 
+    process has started executing will display the process' PID.
+
+
+Files modified/added:
+  - vm/vmemmanage.cc: Virtual memory manager. Replaces userprog/memmanage.cc when compiled with VM enabled. 
+    Handles loading and storing of memory pages to/from disk as well as physical memory page allocation. Also
+    contains the page replacement logic (2nd-chance FIFO).
+  - userprog/exception.cc: Added pagefault handler. Deals with both TLB faults (page mapped, but no in TLB) and 
+    page faults (page must be swapped from disk). 
+  - userprog/addrspace.cc: Creating, cloning, and deleting address spaces modified to correctly use virtual 
+    memory manager.
+  - machine/system.cc: Initialize global filesystem and virtual memory manager classes.
+
+  - machine/translate.h: Added flags for in memory, swap sector, and first use to TranslationEntry.
+  - filesys/directory.cc, filesys/directory.h: Modified to support resizable directories.
+  - filesys/filehdr.cc, filesys/filehdr.h: Added the concept of indirect blocks, as well as virtual sectors. Virtual 
+    sector mappings are used internally to simplify the indirect block access. The file extension mechanism was implemented
+    in here as well.
+  - filesys/filesys.cc, filesys/filesys.h: Modified to support the Directory() and OpenFile() constructors.
+  - filesys/openfile.h: Added some extra members to OpenFile to support expandable files.
+  - filesys/openfile.cc: Added file expansion in OpenFile::WriteAt().
+  - filesys/synchdisk.cc, filesys/synchdisk.h: Added a transactional layer to the disk to prevent synchronization issues.
+  - filesys/fstest.cc, filesys/main.cc: Added test that is like copy, but initializes the file to 0 bytes.
+

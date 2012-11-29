@@ -15,33 +15,38 @@
 
 #include "copyright.h"
 #include "filesys.h"
-#include "pcb.h"
-#include "MemoryManager.h"
+#include "memmanage.h"
+#include "psblock.h"
 
 #define UserStackSize		1024 	// increase this as necessary!
 
 class AddrSpace {
   public:
-    AddrSpace(const AddrSpace* other, PCB* pcb);  // Copy constructor
-    AddrSpace(OpenFile *executable, PCB* pcb);// Create an address space
+    int Init(const AddrSpace *space);
+    int Init(OpenFile *executable);	// Create an address space,
+					// initializing it with the program
+					// stored in the file "executable"
     ~AddrSpace();			// De-allocate an address space
 
-    int Translate(int virtualAddress);  // Translates a virtual to physical addr
-    int ReadFile(int virtAddr, OpenFile* file, int size, int fileAddr);
-    int getNumPages() {return numPages;} // returns the number of pages held
-
     void InitRegisters();		// Initialize user-level CPU registers,
+					// before jumping to user code
+
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
-    PCB* getPCB();                      // returns the associated PCB
-    bool isValid();                     // means we allocated addrspace success
-    TranslationEntry *pageTable;	// Assume linear page table translation
-					// for now!
 
-  private:
+    bool Translate(int vaddr, int *paddr, bool writing);
+
+    int ReadFile(int virtAddr, OpenFile* file, int size, int fileAddr);
+
+    void InitPCB(AddrSpace *parentspace, Thread *thread);
+
+    PCB *pcb; // contains useful stuff about the process
+
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
-    PCB* pcb;                           // associated PCB
+
+    TranslationEntry *pageTable;	// Assume linear page table translation
+					// for now!
 };
 
 #endif // ADDRSPACE_H

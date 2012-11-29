@@ -33,7 +33,7 @@ BitMap::BitMap(int nitems)
 
 BitMap::~BitMap()
 { 
-    delete map;
+    delete[] map;
 }
 
 //----------------------------------------------------------------------

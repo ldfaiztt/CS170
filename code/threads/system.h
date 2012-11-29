@@ -30,28 +30,29 @@ extern Statistics *stats;			// performance metrics
 extern Timer *timer;				// the hardware alarm clock
 
 #ifdef USER_PROGRAM
-
-#include "synch.h"
-#include "ProcessManager.h"
-#include "MemoryManager.h"
 #include "machine.h"
-#include "sysopenfilemanager.h"
-
+#include "memmanage.h"
+#include "psmanage.h"
 extern Machine* machine;	// user program memory and registers
-extern Lock* machineLock;
 
-extern char diskBuffer[PageSize]; // PageSize defined in machine.h
-extern Lock* diskBufferLock;
+#ifdef VM
+#include "vmemmanage.h"
+extern VMemoryManager* memmanager; // manages free pages
+#else
+extern MemoryManager* memmanager;
+#endif
 
-extern MemoryManager* memManager;
-extern Lock* memManagerLock;
+extern ProcessManager* psmanager;
 
-extern ProcessManager* processManager;
-extern Lock* processManagerLock;
+extern SysOpenFile **sysOpenFiles; // All open files.
+extern int sysOpenFileCount; // Number of open files.
+extern int lastSysFileId; //TODO(ian): Hopefully this doesn't overflow.
+extern char* diskBuffer; // Buffer for userspace read/write.
+#endif
 
-extern SysOpenFileManager* fileManager;
-extern Lock* fileManagerLock;
-
+#ifdef USE_TLB
+extern int nextTlbEntry;
+//extern PageManager pageManager;
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

@@ -220,11 +220,19 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	}
 	entry = &pageTable[vpn];
     } else {
-        for (entry = NULL, i = 0; i < TLBSize; i++)
-    	    if (tlb[i].valid && (((unsigned int)tlb[i].virtualPage) == vpn)) {
+      DEBUG('s', "\n----TLB----\n");
+      DEBUG('s', "Looking for vpage %d\n", vpn);
+      for (int ii = 0; ii < TLBSize; ii++) {
+	DEBUG('s', "valid? %d, vpage=%d, ppage=%d\n", tlb[ii].valid, tlb[ii].virtualPage, tlb[ii].physicalPage);
+      }
+      DEBUG('s', "---/TLB/---\n");
+      
+        for (entry = NULL, i = 0; i < TLBSize; i++){
+   	    if (tlb[i].valid && (((unsigned int)tlb[i].virtualPage) == vpn)) {
 		entry = &tlb[i];			// FOUND!
 		break;
 	    }
+        }
 	if (entry == NULL) {				// not found
     	    DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
     	    return PageFaultException;		// really, this is a TLB fault,
@@ -246,8 +254,10 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	return BusErrorException;
     }
     entry->use = TRUE;		// set the use, dirty bits
-    if (writing)
+    if (writing) {
+      //     printf("Page %d marked dirty\n", entry->virtualPage);
 	entry->dirty = TRUE;
+    }
     *physAddr = pageFrame * PageSize + offset;
     ASSERT((*physAddr >= 0) && ((*physAddr + size) <= MemorySize));
     DEBUG('a', "phys addr = 0x%x\n", *physAddr);

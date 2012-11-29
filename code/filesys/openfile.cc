@@ -27,11 +27,12 @@
 //	"sector" -- the location on disk of the file header for this file
 //----------------------------------------------------------------------
 
-OpenFile::OpenFile(int sector)
+OpenFile::OpenFile(int sector, FileSystem *fs) : sector(sector), fs(fs)
 { 
     hdr = new FileHeader;
     hdr->FetchFrom(sector);
     seekPosition = 0;
+    fileID = -1;
 }
 
 //----------------------------------------------------------------------
@@ -151,10 +152,34 @@ OpenFile::WriteAt(char *from, int numBytes, int position)
     bool firstAligned, lastAligned;
     char *buf;
 
-    if ((numBytes <= 0) || (position >= fileLength))
-	return 0;				// check request
-    if ((position + numBytes) > fileLength)
+    if (numBytes <= 0) {
+        DEBUG('f', "numBytes %d was not a good number\n", numBytes);
+        return 0;
+    }
+    if (position > fileLength) {
+        DEBUG('f', "Position %d is past end of file\n", position);
+        return 0;
+    }
+    if ((position + numBytes) > fileLength) {
+        BitMap *freeMap = new BitMap(NumSectors);
+        freeMap->FetchFrom(fs->freeMapFile);
+
+        hdr->Extend(position + numBytes, freeMap);
+        hdr->WriteBack(sector);
+
+        freeMap->WriteBack(fs->freeMapFile);
+        delete freeMap;
+
+        if (fileID != -1) {
+            int pid = currentThread->space->pcb->GetPID();
+            printf("F %d %d: %d -> %d\n", pid, fileID, fileLength, hdr->FileLength());
+        } else {
+            DEBUG('F', "Resize from %d -> %d\n", fileLength, hdr->FileLength());
+        }
+
+        fileLength = hdr->FileLength();
 	numBytes = fileLength - position;
+    }
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n", 	
 			numBytes, position, fileLength);
 

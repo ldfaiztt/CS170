@@ -18,7 +18,8 @@
 #include "bitmap.h"
 
 #define NumDirect 	((SectorSize - 2 * sizeof(int)) / sizeof(int))
-#define MaxFileSize 	(NumDirect * SectorSize)
+#define NumIndirect     (SectorSize / sizeof(int))
+#define MaxFileSize 	(NumDirect * (NumIndirect * SectorSize))
 
 // The following class defines the Nachos "file header" (in UNIX terms,  
 // the "i-node"), describing where on disk to find all of the data in the file.
@@ -34,6 +35,12 @@
 // There is no constructor; rather the file header can be initialized
 // by allocating blocks for the file (if it is a new file), or by
 // reading it from disk.
+
+struct __attribute__((__packed__)) fileheaderrepr {
+    int numBytes;
+    int numSectors;
+    int indirectSectors[NumDirect];
+};
 
 class FileHeader {
   public:
@@ -56,11 +63,31 @@ class FileHeader {
 
     void Print();			// Print the contents of the file.
 
+    void Extend(int newSize, BitMap *freeMap); // returns true if extension is successful
+    // will succeed even if numBytes + bytes > MaxFileSize
+    // will extend it as far as possible
+    // WriteAt will need to deal with the fallout
+
+    FileHeader();
+    ~FileHeader();
+
   private:
+    int *sectorMap(int virtSect);
+    void setVirtualSector(int virtSect, int physSect);
+    int getVirtualSector(int virtSect);
+
     int numBytes;			// Number of bytes in the file
     int numSectors;			// Number of data sectors in the file
-    int dataSectors[NumDirect];		// Disk sector numbers for each data 
-					// block in the file
+
+    // These are used for the single-indirect block pointers
+    // the fileheader
+    int indirectSectors[NumDirect]; // list of sector numbers for each block
+
+    // this is not actually part of the header
+    int *indirectBlocks[NumDirect]; // contents of each block
+
+//    int dataSectors[NumDirect];		// Disk sector numbers for each data 
+//					// block in the file
 };
 
 #endif // FILEHDR_H

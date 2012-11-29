@@ -1,0 +1,25 @@
+Tasks Completed:
+  All tasks were successfully completed. The code should compile and all
+  system calls should be handled correctly.
+
+Building and running:
+  $ make
+  $ ./userprog/nachos
+  
+Debug flags used:
+  - '2': Required output given in the project specification.
+  - '1': Verbose debugging output during execution of certain syscalls.
+  - 's': Errors encountered during syscall execution
+
+Files modified/added:
+  - addrspace.cc/.h: Modified binary loader to write to translated memory
+  - exception.cc: Check incoming system calls, call relevant handler code, then
+    increment program counter. Handles multiprogramming calls.
+  - memmanage.cc/.h: Memory manager. Tracks free and allocated pages
+  - psblock.cc/.h: The process control block, which stores the PID, parentPID,
+    thread, and opened files for a process
+  - psmanage.cc/.h: Process manager. Tracks allocated PIDs and deals with
+    joining on processes.
+  - fscalls.cc/.h: Handler code for file system calls, and the userRead and
+    userWrite buffered userspace copy functions.
+  
