@@ -12,9 +12,9 @@ main()
 {
     int id;
     Yield();
-    id = Exec("../test/matmult1");
+    id = Exec("matmult1");
     id = Join(id);
-    id = Exec("../test/testvmfork");
+    id = Exec("testvmfork");
     id = Join(id);
     
     Write("Will exit with the same status as the child...\n",48,ConsoleOutput);

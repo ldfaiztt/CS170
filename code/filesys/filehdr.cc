@@ -34,19 +34,19 @@
 //          file logical-physical block mapping information loaded from those sectos.
 //----------------------------------------------------------------------
 FileHeader::FileHeader() {
-    DEBUG('F', "FileHeader constructor called\n");
-    for (int i = 0; i < NumDirect; i++) {
-        indirectSectors[i] = -1;
-        indirectBlocks[i] = NULL;
-    }
+	DEBUG('F', "FileHeader constructor called\n");
+	for (int i = 0; i < NumDirect; i++) {
+		indirectSectors[i] = -1;
+		indirectBlocks[i] = NULL;
+	}
 }
 
 FileHeader::~FileHeader() {
-    for (int i = 0; i < NumDirect; i++) {
-        if (indirectBlocks[i]) {
-            delete[] indirectBlocks[i];
-        }
-    }
+	for (int i = 0; i < NumDirect; i++) {
+		if (indirectBlocks[i]) {
+			delete[] indirectBlocks[i];
+		}
+	}
 }
 
 //----------------------------------------------------------------------
@@ -54,20 +54,20 @@ FileHeader::~FileHeader() {
 //
 //----------------------------------------------------------------------
 int *FileHeader::sectorMap(int virtSect) {
-    if (virtSect >= numSectors) {
-        DEBUG('f', "virtSect %d is too large (>= %d)\n", virtSect, numSectors);
-        return NULL;
-    }
+	if (virtSect >= numSectors) {
+		DEBUG('f', "virtSect %d is too large (>= %d)\n", virtSect, numSectors);
+		return NULL;
+	}
 
-    int physBlock = virtSect / NumIndirect; // NumIndirect entries per block
-    int blockIndex = virtSect % NumIndirect;
+	int physBlock = virtSect / NumIndirect; // NumIndirect entries per block
+	int blockIndex = virtSect % NumIndirect;
 
-    ASSERT(physBlock < (int)NumDirect);
-    ASSERT(indirectBlocks[physBlock] != NULL);
+	ASSERT(physBlock < (int)NumDirect);
+	ASSERT(indirectBlocks[physBlock] != NULL);
 
-    int *physSect = &indirectBlocks[physBlock][blockIndex];
+	int *physSect = &indirectBlocks[physBlock][blockIndex];
 
-    return physSect;
+	return physSect;
 }
 //----------------------------------------------------------------------
 // Give a mapping from file logical block (sector) number to the physical sector number
@@ -75,11 +75,11 @@ int *FileHeader::sectorMap(int virtSect) {
 //----------------------------------------------------------------------
 
 int FileHeader::getVirtualSector(int virtSect) {
-    int *physSect = sectorMap(virtSect);
-    ASSERT(physSect);
+	int *physSect = sectorMap(virtSect);
+	ASSERT(physSect);
 
-    DEBUG('F', "virt %d maps to phys %d\n", virtSect, *physSect);
-    return *physSect;
+	DEBUG('F', "virt %d maps to phys %d\n", virtSect, *physSect);
+	return *physSect;
 }
 
 //----------------------------------------------------------------------
@@ -88,11 +88,11 @@ int FileHeader::getVirtualSector(int virtSect) {
 //----------------------------------------------------------------------
 
 void FileHeader::setVirtualSector(int virtSect, int sectValue) {
-    int *physSect = sectorMap(virtSect);
-    ASSERT(physSect);
-    ASSERT(*physSect == -1);
+	int *physSect = sectorMap(virtSect);
+	ASSERT(physSect);
+	ASSERT(*physSect == -1);
 
-    *physSect = sectValue;
+	*physSect = sectValue;
 }
 
 //----------------------------------------------------------------------
@@ -102,26 +102,69 @@ void FileHeader::setVirtualSector(int virtSect, int sectValue) {
 //  Object freeMap maintains a set of free physical sectors. Use that to allocate physical sectors needed. 
 //----------------------------------------------------------------------
 
-
 void FileHeader::Extend(int newNumBytes, BitMap *freeMap) {
-    DEBUG('F', "Extending file to %d bytes from %d\n", newNumBytes, numBytes);
 
-    if (newNumBytes <= numBytes) {
-        DEBUG('f', "Attempting to shorten file, ignoring\n");
-        return;
-    }
-    if (newNumBytes > MaxFileSize) {
-        DEBUG('F', "%d longer than %d, using MaxFileSize\n", newNumBytes, MaxFileSize);
-        newNumBytes = MaxFileSize;
-    }
+	DEBUG('F', "Extending file to %d bytes from %d\n", newNumBytes, numBytes);
 
-    int newNumSectors;
+	if (newNumBytes <= numBytes) {
+		DEBUG('f', "Attempting to shorten file, ignoring\n");
+		return;
+	}
+	if (newNumBytes > MaxFileSize) {
+		DEBUG('F', "%d longer than %d, using MaxFileSize\n", newNumBytes,
+				MaxFileSize);
+		newNumBytes = MaxFileSize;
+	}
 
-/// code removed. Convert #bytes needed to #sector needed.
-    ASSERT(newNumSectors >= numSectors);
-    // if (newNumSectors == numSectors) we have enough space allocated; just return
+	// Convert #bytes needed to #sector needed.
+	int newNumSectors = divRoundUp(newNumBytes, SectorSize);
+	ASSERT(newNumSectors >= numSectors);
 
-//code removed
+	if (newNumSectors == numSectors) {
+		DEBUG('f', "We have enough space allocated, ignoring\n");
+		return;
+	}
+
+	int numBlocks = divRoundUp(numSectors, NumIndirect);
+	int newNumBlocks = divRoundUp(newNumSectors, NumIndirect);
+	int sectorsLeftToAllocate = newNumSectors - numSectors;
+	int blocksLeftToAllocate = newNumBlocks - numBlocks;
+
+	if (freeMap->NumClear() < sectorsLeftToAllocate + blocksLeftToAllocate) {
+		printf(
+				"Need %d sectors and blocks. freeMap has only %d bits available. Returning.\n",
+				sectorsLeftToAllocate + blocksLeftToAllocate, freeMap->NumClear());
+		return;
+	}
+
+	if (newNumBlocks > NumDirect) {
+		DEBUG('f', "File will not fit in header\n");
+		return;
+	}
+
+	int offset;
+	for (int i = 0; i < blocksLeftToAllocate; i++) {
+		offset = i + numBlocks; // calculate where to start to allocate blocks
+		ASSERT(indirectSectors[offset] == -1);
+		ASSERT(indirectBlocks[offset] == NULL);
+		// Find and allocate a bit to use
+		indirectSectors[offset] = freeMap->Find();
+		// Allocate space for data in block
+		indirectBlocks[offset] = new int[NumIndirect];
+		// Clear the block bits
+		for (int j = 0; j < NumIndirect; j++) {
+			indirectBlocks[offset][j] = -1;
+		}
+	}
+
+	int oldNumSectors = numSectors;
+	numSectors = newNumSectors;
+
+	//Setup  a mapping from file logical block (sector) number to the physical sector number
+	for (int i = 0; i < sectorsLeftToAllocate; i++) {
+		setVirtualSector(i + oldNumSectors, freeMap->Find());
+	}
+	numBytes = newNumBytes;
 }
 
 //----------------------------------------------------------------------
@@ -135,35 +178,34 @@ void FileHeader::Extend(int newNumBytes, BitMap *freeMap) {
 //	"fileSize" is the bit map of free disk sectors
 //----------------------------------------------------------------------
 
-bool
-FileHeader::Allocate(BitMap *freeMap, int fileSize)
-{ 
-    numBytes = fileSize;
-    numSectors  = divRoundUp(fileSize, SectorSize);
-    int numBlocks = divRoundUp(numSectors, NumIndirect);
-    if (numBlocks > NumDirect) {
-        DEBUG('f', "File will not fit in header\n");
-        return FALSE;
-    }
-    DEBUG('F', "allocating %d bytes in %d sectors (%d blocks)\n", numBytes, numSectors, numBlocks);
+bool FileHeader::Allocate(BitMap *freeMap, int fileSize) {
+	numBytes = fileSize;
+	numSectors = divRoundUp(fileSize, SectorSize);
+	int numBlocks = divRoundUp(numSectors, NumIndirect);
+	if (numBlocks > NumDirect) {
+		DEBUG('f', "File will not fit in header\n");
+		return FALSE;
+	}
+	DEBUG('F', "allocating %d bytes in %d sectors (%d blocks)\n", numBytes,
+			numSectors, numBlocks);
 
-    if (freeMap->NumClear() < numSectors + numBlocks)
-	return FALSE;		// not enough space
+	if (freeMap->NumClear() < numSectors + numBlocks)
+		return FALSE; // not enough space
 
-    for (int i = 0; i < numBlocks; i++) {
-        ASSERT(indirectSectors[i] == -1);
-        ASSERT(indirectBlocks[i] == NULL);
+	for (int i = 0; i < numBlocks; i++) {
+		ASSERT(indirectSectors[i] == -1);
+		ASSERT(indirectBlocks[i] == NULL);
 
-        indirectSectors[i] = freeMap->Find();
-        indirectBlocks[i] = new int[NumIndirect];
-        for (int j = 0; j < NumIndirect; j++) {
-            indirectBlocks[i][j] = -1;
-        }
-    }
+		indirectSectors[i] = freeMap->Find();
+		indirectBlocks[i] = new int[NumIndirect];
+		for (int j = 0; j < NumIndirect; j++) {
+			indirectBlocks[i][j] = -1;
+		}
+	}
 
-    for (int i = 0; i < numSectors; i++)
-	setVirtualSector(i, freeMap->Find());
-    return TRUE;
+	for (int i = 0; i < numSectors; i++)
+		setVirtualSector(i, freeMap->Find());
+	return TRUE;
 }
 
 //----------------------------------------------------------------------
@@ -173,21 +215,20 @@ FileHeader::Allocate(BitMap *freeMap, int fileSize)
 //	"freeMap" is the bit map of free disk sectors
 //----------------------------------------------------------------------
 
-void 
-FileHeader::Deallocate(BitMap *freeMap)
-{
-    int numBlocks = divRoundUp(numSectors, NumIndirect);
-    ASSERT(numBlocks <= NumDirect);
+void FileHeader::Deallocate(BitMap *freeMap) {
+	int numBlocks = divRoundUp(numSectors, NumIndirect);
+	ASSERT(numBlocks <= NumDirect);
 
-    for (int i = 0; i < numSectors; i++) {
-	ASSERT(freeMap->Test(getVirtualSector(i)));  // ought to be marked!
-	freeMap->Clear(getVirtualSector(i));
-    }
-    for (int i = 0; i < numBlocks; i++) {
-        ASSERT(indirectSectors[i] != -1);
-        ASSERT(freeMap->Test(indirectSectors[i]));
-        freeMap->Clear(indirectSectors[i]);
-    }
+	for (int i = 0; i < numSectors; i++) {
+		ASSERT(freeMap->Test(getVirtualSector(i)));
+		// ought to be marked!
+		freeMap->Clear(getVirtualSector(i));
+	}
+	for (int i = 0; i < numBlocks; i++) {
+		ASSERT(indirectSectors[i] != -1);
+		ASSERT(freeMap->Test(indirectSectors[i]));
+		freeMap->Clear(indirectSectors[i]);
+	}
 }
 
 //----------------------------------------------------------------------
@@ -197,45 +238,43 @@ FileHeader::Deallocate(BitMap *freeMap)
 //	"sector" is the disk sector containing the file header
 //----------------------------------------------------------------------
 
-void
-FileHeader::FetchFrom(int sector)
-{
-    DEBUG('F', "FetchFrom called\n");
+void FileHeader::FetchFrom(int sector) {
+	DEBUG('F', "FetchFrom called\n");
 
-    union {
-        char *tempBuf;
-        struct fileheaderrepr *header;
-    };
+	union {
+		char *tempBuf;
+		struct fileheaderrepr *header;
+	};
 
-    synchDisk->BeginTransaction();
+	synchDisk->BeginTransaction();
 
-    ASSERT(sizeof(fileheaderrepr) == SectorSize);
-    tempBuf = new char[SectorSize];
-    ASSERT(tempBuf);
+	ASSERT(sizeof(fileheaderrepr) == SectorSize);
+	tempBuf = new char[SectorSize];
+	ASSERT(tempBuf);
 
-    synchDisk->ReadSectorTrans(sector, tempBuf);
+	synchDisk->ReadSectorTrans(sector, tempBuf);
 
-    numBytes = header->numBytes;
-    numSectors = header->numSectors;
-    memcpy(indirectSectors, header->indirectSectors, NumDirect * sizeof(int));
+	numBytes = header->numBytes;
+	numSectors = header->numSectors;
+	memcpy(indirectSectors, header->indirectSectors, NumDirect * sizeof(int));
 
-    delete tempBuf;
+	delete tempBuf;
 
-    ASSERT(sizeof(int[NumIndirect]) == SectorSize);
-    int numBlocks = divRoundUp(numSectors, NumIndirect);
-    ASSERT(numBlocks <= NumDirect);
-    for (int i = 0; i < numBlocks; i++) {
-        ASSERT(indirectSectors[i] != -1);
-        if (indirectBlocks[i] != NULL) {
-            printf("indirectBlocks[%d] = %p\n", i, indirectBlocks[i]);
-        }
-        ASSERT(indirectBlocks[i] == NULL);
-        indirectBlocks[i] = new int[NumIndirect];
-        ASSERT(indirectBlocks[i] != NULL);
-        synchDisk->ReadSectorTrans(indirectSectors[i], (char*)indirectBlocks[i]);
-    }
+	ASSERT(sizeof(int[NumIndirect]) == SectorSize);
+	int numBlocks = divRoundUp(numSectors, NumIndirect);
+	ASSERT(numBlocks <= NumDirect);
+	for (int i = 0; i < numBlocks; i++) {
+		ASSERT(indirectSectors[i] != -1);
+		if (indirectBlocks[i] != NULL) {
+			printf("indirectBlocks[%d] = %p\n", i, indirectBlocks[i]);
+		}ASSERT(indirectBlocks[i] == NULL);
+		indirectBlocks[i] = new int[NumIndirect];
+		ASSERT(indirectBlocks[i] != NULL);
+		synchDisk->ReadSectorTrans(indirectSectors[i],
+				(char*) indirectBlocks[i]);
+	}
 
-    synchDisk->EndTransaction();
+	synchDisk->EndTransaction();
 }
 
 //----------------------------------------------------------------------
@@ -245,40 +284,39 @@ FileHeader::FetchFrom(int sector)
 //	"sector" is the disk sector to contain the file header
 //----------------------------------------------------------------------
 
-void
-FileHeader::WriteBack(int sector)
-{
-    DEBUG('F', "WriteBack called\n");
+void FileHeader::WriteBack(int sector) {
+	DEBUG('F', "WriteBack called\n");
 
-    union {
-        struct fileheaderrepr *header;
-        char *tempBuf;
-    };
+	union {
+		struct fileheaderrepr *header;
+		char *tempBuf;
+	};
 
-    synchDisk->BeginTransaction();
+	synchDisk->BeginTransaction();
 
-    ASSERT(sizeof(struct fileheaderrepr) == SectorSize);
-    tempBuf = new char[SectorSize];
-    ASSERT(tempBuf);
+	ASSERT(sizeof(struct fileheaderrepr) == SectorSize);
+	tempBuf = new char[SectorSize];
+	ASSERT(tempBuf);
 
-    header->numBytes = numBytes;
-    header->numSectors = numSectors;
-    memcpy(header->indirectSectors, indirectSectors, NumDirect * sizeof(int));
+	header->numBytes = numBytes;
+	header->numSectors = numSectors;
+	memcpy(header->indirectSectors, indirectSectors, NumDirect * sizeof(int));
 
-    synchDisk->WriteSectorTrans(sector, tempBuf); 
+	synchDisk->WriteSectorTrans(sector, tempBuf);
 
-    delete tempBuf;
+	delete tempBuf;
 
-    ASSERT(sizeof(int[NumIndirect]) == SectorSize);
-    int numBlocks = divRoundUp(numSectors, NumIndirect);
-    ASSERT(numBlocks <= NumDirect);
-    for (int i = 0; i < numBlocks; i++) {
-        ASSERT(indirectSectors[i] != -1);
-        ASSERT(indirectBlocks[i] != NULL);
-        synchDisk->WriteSectorTrans(indirectSectors[i], (char*)indirectBlocks[i]);
-    }
+	ASSERT(sizeof(int[NumIndirect]) == SectorSize);
+	int numBlocks = divRoundUp(numSectors, NumIndirect);
+	ASSERT(numBlocks <= NumDirect);
+	for (int i = 0; i < numBlocks; i++) {
+		ASSERT(indirectSectors[i] != -1);
+		ASSERT(indirectBlocks[i] != NULL);
+		synchDisk->WriteSectorTrans(indirectSectors[i],
+				(char*) indirectBlocks[i]);
+	}
 
-    synchDisk->EndTransaction();
+	synchDisk->EndTransaction();
 }
 
 //----------------------------------------------------------------------
@@ -291,10 +329,8 @@ FileHeader::WriteBack(int sector)
 //	"offset" is the location within the file of the byte in question
 //----------------------------------------------------------------------
 
-int
-FileHeader::ByteToSector(int offset)
-{
-    return(getVirtualSector(offset / SectorSize));
+int FileHeader::ByteToSector(int offset) {
+	return (getVirtualSector(offset / SectorSize));
 }
 
 //----------------------------------------------------------------------
@@ -302,10 +338,8 @@ FileHeader::ByteToSector(int offset)
 // 	Return the number of bytes in the file.
 //----------------------------------------------------------------------
 
-int
-FileHeader::FileLength()
-{
-    return numBytes;
+int FileHeader::FileLength() {
+	return numBytes;
 }
 
 //----------------------------------------------------------------------
@@ -314,30 +348,28 @@ FileHeader::FileLength()
 //	the data blocks pointed to by the file header.
 //----------------------------------------------------------------------
 
-void
-FileHeader::Print()
-{
-    int i, j, k;
-    char *data = new char[SectorSize];
+void FileHeader::Print() {
+	int i, j, k;
+	char *data = new char[SectorSize];
 
-    printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
-    for (i = 0; i < numSectors; i++)
-	printf("%d ", getVirtualSector(i));
-    printf("\nIndirect block sectors:\n");
-    j = divRoundUp(numSectors, NumIndirect);
-    for (i = 0; i < j; i++) {
-        printf("%d ", indirectSectors[i]);
-    }
-    printf("\nFile contents:\n");
-    for (i = k = 0; i < numSectors; i++) {
-	synchDisk->ReadSector(getVirtualSector(i), data);
-        for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++) {
-	    if ('\040' <= data[j] && data[j] <= '\176')   // isprint(data[j])
-		printf("%c", data[j]);
-            else
-		printf("\\%x", (unsigned char)data[j]);
+	printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
+	for (i = 0; i < numSectors; i++)
+		printf("%d ", getVirtualSector(i));
+	printf("\nIndirect block sectors:\n");
+	j = divRoundUp(numSectors, NumIndirect);
+	for (i = 0; i < j; i++) {
+		printf("%d ", indirectSectors[i]);
 	}
-        printf("\n"); 
-    }
-    delete [] data;
+	printf("\nFile contents:\n");
+	for (i = k = 0; i < numSectors; i++) {
+		synchDisk->ReadSector(getVirtualSector(i), data);
+		for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++) {
+			if ('\040' <= data[j] && data[j] <= '\176') // isprint(data[j])
+				printf("%c", data[j]);
+			else
+				printf("\\%x", (unsigned char) data[j]);
+		}
+		printf("\n");
+	}
+	delete[] data;
 }
